@@ -1,0 +1,6 @@
+{
+	"MyIngress.ipv4Lpm": "MyIngress.drop",
+	"MyIngress.internalMacLookup": "MyIngress.drop",
+	"MyIngress.tunnelLookup": "MyIngress.drop",
+	"MyIngress.labelLookup": "MyIngress.drop"
+}
