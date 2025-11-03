@@ -93,6 +93,7 @@ header icmp_t {
 
 struct metadata {
     @field_list(0) // preserved on recirculate_preserving_field_list
+    bit<1> sc_visited;
     bit<9>    ingress_port;
     macAddr_t nextHopMac;
     bit<8>    tcp_opt_size;
@@ -380,6 +381,43 @@ control MyIngress(inout headers hdr,
         default_action = NoAction;
     }
 
+    // ====================================================================
+    //  Service Chaining - Egress (R4)
+    //  Decide se o tráfego decapsulado deve passar por VMON/VFW ou ir para LAN
+    // ====================================================================
+
+    // Encaminha para o vMonitor (interface ligada ao container vmon)
+    action to_vmon(bit<9> port) {
+        standard_metadata.egress_spec = port;
+        meta.sc_visited = 1;
+    }
+
+    // Encaminha diretamente para o vFirewall
+    action to_vfw(bit<9> port) {
+        standard_metadata.egress_spec = port;
+        meta.sc_visited = 1;
+    }
+
+    // Encaminha diretamente para a LAN (host h4)
+    action to_lan(bit<9> port) {
+        standard_metadata.egress_spec = port;
+    }
+
+    // Tabela que decide a cadeia de VNFs de saída
+    table serviceChainEgress {
+        key = {
+            hdr.ipv4.dstAddr: lpm;
+        }
+        actions = {
+            to_vmon;
+            to_vfw;
+            to_lan;
+            NoAction;
+        }
+        size = 128;
+        default_action = NoAction();
+    }
+
     apply {
         // If it is the original packet
         if(standard_metadata.instance_type == 0){
@@ -394,7 +432,15 @@ control MyIngress(inout headers hdr,
                 forwardTunnel: { activateFirewall = 1; }  // If still inside the tunnel, set firewall processing to active
             }
             
-        } else if(hdr.ipv4.isValid()) { // If unencapsulated
+        }
+
+        if (meta.sc_visited == 1) {
+            // ignora nova aplicação do service chain
+        } else {
+            serviceChainEgress.apply();
+        }
+
+        if(hdr.ipv4.isValid()) { // If unencapsulated
             switch(ipv4Lpm.apply().action_run) { 
                 
                 // Dst it the LAN

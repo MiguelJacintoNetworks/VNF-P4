@@ -132,6 +132,39 @@ def my_decode_mac(mac):
 def convert_to_hex(v: int) -> str:
     return f"0x{v:x}"
 
+def parse_service_chain_ingress(entry, helper):
+    """
+    Parses entries from the serviceChainIngress table (R1).
+    Match: IPv4 dst address (LPM)
+    Actions: to_vlb(port) | to_tunnel(port, label) | NoAction
+    """
+    enc_ip = helper.get_match_field_value(entry.match[0])
+    ip = (decodeIPv4(enc_ip[0]), enc_ip[1])
+    action = helper.get_actions_name(entry.action.action.action_id)
+    params = {}
+    for p in entry.action.action.params:
+        param_name = helper.get_action_param_name(action, p.param_id)
+        params[param_name] = decodeNum(p.value)
+    key = json.dumps({"hdr.ipv4.dstAddr": list(ip)})
+    return key, action, params
+
+
+# Parse Service Chain Egress rule
+def parse_service_chain_egress(entry, helper):
+    """
+    Parses entries from the serviceChainEgress table (R4).
+    Match: IPv4 dst address (LPM)
+    Actions: to_monitor(port) | to_firewall(port) | NoAction
+    """
+    enc_ip = helper.get_match_field_value(entry.match[0])
+    ip = (decodeIPv4(enc_ip[0]), enc_ip[1])
+    action = helper.get_actions_name(entry.action.action.action_id)
+    params = {}
+    for p in entry.action.action.params:
+        param_name = helper.get_action_param_name(action, p.param_id)
+        params[param_name] = decodeNum(p.value)
+    key = json.dumps({"hdr.ipv4.dstAddr": list(ip)})
+    return key, action, params
 
 # Dictionary marking the tables existing for deparsing and the corresponding parser
 TABLE_PARSERS = {
@@ -142,5 +175,7 @@ TABLE_PARSERS = {
     "MyIngress.checkDirection": parse_check_direction,
     "MyIngress.allowedPortsTCP": parse_allowed_tcp,
     "MyIngress.allowedPortsUDP": parse_allowed_udp,
-    "MyIngress.sMacLookup": parse_smac_lookup
+    "MyIngress.sMacLookup": parse_smac_lookup,
+    "MyIngress.serviceChainIngress": parse_service_chain_ingress,
+    "MyIngress.serviceChainEgress": parse_service_chain_egress
 }

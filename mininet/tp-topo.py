@@ -2,6 +2,8 @@
 
 
 from mininet.net import Mininet
+from mininet.net import Containernet
+from mininet.node import Docker
 from mininet.topo import Topo
 from mininet.log import setLogLevel, info
 from mininet.cli import CLI
@@ -133,25 +135,118 @@ class SingleSwitchTopo(Topo):
         
 def main():
 
-    # Initialize the custom topology with the provided arguments
+    # 1) topo P4 normal
     topo = SingleSwitchTopo(args.behavioral_exe,
                             args.thrift_port,
                             args.grpc_port)
 
-    # the host class is the P4Host
-    net = Mininet(topo = topo,
-                  host = P4Host,
-                  controller = None)
+    net = Containernet(topo=topo,
+                       host=P4Host,
+                       controller=None)
 
-    # Here, the mininet will use the constructor (__init__()) of the P4Switch class, 
-    # with the arguments passed to the SingleSwitchTopo class in order to create 
-    # our software switch.
+    # 2) criar VNFs (sem IP ainda, e sem rede docker)
+    vlb = net.addDocker(
+        'vlb',
+        dimage='vnf-base',
+        dcmd='sh -c "sleep infinity"',
+        docker_args={'network_mode': 'none'}
+    )
+    vmon = net.addDocker(
+        'vmon',
+        dimage='vnf-base',
+        dcmd='sh -c "sleep infinity"',
+        docker_args={'network_mode': 'none'}
+    )
+    vfw = net.addDocker(
+        'vfw',
+        dimage='vnf-base',
+        dcmd='sh -c "sleep infinity"',
+        docker_args={'network_mode': 'none'}
+    )
+
+    # 3) ligar VNFs aos routers/hosts
+    r1 = net.get('r1')
+    r4 = net.get('r4')
+    h4 = net.get('h4')
+
+    net.addLink(r1, vlb)     # r1-eth4 <-> vlb-eth0
+    net.addLink(r4, vmon)    # r4-eth4 <-> vmon-eth0
+    net.addLink(vmon, vfw)   # vmon-eth1 <-> vfw-eth0
+    net.addLink(h4, vfw)     # h4-eth1 <-> vfw-eth1
+
+    # 4) arrancar a rede
     net.start()
+    sleep(1)
+
+    h4.cmd("ip addr flush dev eth0")
+
+    # garantir IP na interface que liga ao vfw
+    h4.cmd("ip addr add 10.0.2.2/24 dev h4-eth1")
+    h4.cmd("ip link set h4-eth1 up")
+
+    # descobrir o MAC real do vfw-eth1
+    vfw_mac = vfw.intf('vfw-eth1').MAC()
+
+    # ARP e default pela interface CERTA
+    h4.setARP("10.0.2.253", vfw_mac)
+    h4.setDefaultRoute("dev h4-eth1 via 10.0.2.253")
     
-    sleep(1)  # time for the host and switch confs to take effect
 
-    # Configurar ARP tables dos hosts
+    # 5) configurar VNFs (versão determinística)
+    # VLB: pendurado no R1
+    vlb.cmd("ip addr flush dev eth0 || true")
+    vlb.cmd("ip link set dev eth0 down || true")
+    vlb.cmd("ip addr add 10.0.10.1/24 dev vlb-eth0")
+    vlb.cmd("ip link set dev vlb-eth0 up")
+    vlb.cmd("ip route del default || true")
 
+    # VMON: para R4 e para o VFW
+    vmon.cmd("ip addr flush dev eth0 || true")
+    vmon.cmd("ip link set dev eth0 down || true")
+    # lado do R4
+    vmon.cmd("ip addr add 10.0.20.1/24 dev vmon-eth0")
+    vmon.cmd("ip link set dev vmon-eth0 up")
+    # lado do VFW (mesma rede que o vfw-eth0)
+    vmon.cmd("ip addr add 10.0.30.2/24 dev vmon-eth1")
+    vmon.cmd("ip link set dev vmon-eth1 up")
+    vmon.cmd("ip route del default || true")
+
+    vmon.cmd(
+        'tcpdump -i vmon-eth1 -s 0 -U -w /tmp/vmon_to_vfw.pcap &'
+    )
+
+    vmon.cmd(
+        'tcpdump -i vmon-eth0 -s 0 -U -w /tmp/r4_to_vmon.pcap &'
+    )
+
+    # VFW: lado do vMON e lado da LAN2 (h4)
+    vfw.cmd("ip addr flush dev eth0 || true")
+    vfw.cmd("ip link set dev eth0 down || true")
+    # lado que fala com o vMON
+    vfw.cmd("ip addr add 10.0.30.1/24 dev vfw-eth0")
+    vfw.cmd("ip link set dev vfw-eth0 up")
+    # lado que fala com o h4 → pôr na mesma rede do h4
+    vfw.cmd("ip addr add 10.0.2.253/24 dev vfw-eth1")
+    vfw.cmd("ip link set dev vfw-eth1 up")
+    vfw.cmd("ip route del default || true")
+
+    vfw.cmd("iptables -P INPUT ACCEPT")
+    vfw.cmd("iptables -P FORWARD ACCEPT")
+    vfw.cmd("iptables -P OUTPUT ACCEPT")
+
+    # permitir tráfego já estabelecido
+    vfw.cmd("iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT")
+
+    # permitir ICMP
+    vfw.cmd("iptables -A FORWARD -p icmp -j ACCEPT")
+
+    # exemplo: bloquear HTTP para o h4 (10.0.2.2)
+    vfw.cmd("iptables -A FORWARD -p tcp -d 10.0.2.2 --dport 80 -j DROP")
+
+    # opcional: mostrar regras no arranque
+    vfw.cmd("iptables -L -v -n")
+
+    # 6) hosts “normais” P4
     h1 = net.get('h1')
     h2 = net.get('h2')
     h3 = net.get('h3')
@@ -159,21 +254,13 @@ def main():
     h1.setARP("10.0.1.254", "aa:00:00:00:01:01")
     h2.setARP("10.0.1.254", "aa:00:00:00:01:01")
     h3.setARP("10.0.1.254", "aa:00:00:00:01:01")
-    
+
     h1.setDefaultRoute("dev eth0 via 10.0.1.254")
     h2.setDefaultRoute("dev eth0 via 10.0.1.254")
     h3.setDefaultRoute("dev eth0 via 10.0.1.254")
 
-    h4 = net.get('h4')
-    h4.setARP("10.0.2.254", "aa:00:00:00:04:01")
-    h4.setDefaultRoute("dev eth0 via 10.0.2.254")
-    
-
     print("Ready !")
-
-    # Start the Mininet CLI, which allows interactive control of the network
-    CLI( net )
-    # Stop the network after exiting the CLI
+    CLI(net)
     net.stop()
 
 if __name__ == '__main__':

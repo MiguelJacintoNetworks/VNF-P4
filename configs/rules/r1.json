@@ -65,5 +65,11 @@
                 "srcMac": "aa:00:00:00:01:03"
             }
         }
+    },
+    "MyIngress.serviceChainIngress": {
+        "{\"hdr.ipv4.dstAddr\": [\"10.0.2.0\", 24]}": {
+            "action": "NoAction",
+            "params": {}
+        }
     }
 }

@@ -24,6 +24,12 @@ import p4runtime_lib.bmv2
 import p4runtime_lib.helper
 from p4runtime_lib.switch import ShutdownAllSwitchConnections #, connections
 
+try:
+    import vnf_orchestrator as vnf
+except ImportError:
+    vnf = None
+    print("Módulo vnf_orchestrator não encontrado. Gestão de VNFs desativada.")
+
 # Define a custom CPU header that encapsules additional information sent by the data plane
 class CpuHeader(Packet):
     name = 'CpuPacket'
@@ -695,6 +701,26 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
                 print("Exiting by input...")
                 graceful_shutdown(clones, tunnels)
                 break
+
+            elif cmd == "vnf" and len(parts) >= 2:
+                subcmd = parts[1].lower()
+                if subcmd == "list":
+                    vnfs = vnf.list_vnfs()
+                    print("\n--- VNFs Ativas ---")
+                    for v in vnfs:
+                        print(f"{v['name']} ({v['image']}) → {v['status']}")
+                    print()
+                elif subcmd == "exec" and len(parts) >= 4:
+                    name = parts[2]
+                    command = " ".join(parts[3:])
+                    print(vnf.exec_in_vnf(name, command))
+                elif subcmd == "restart" and len(parts) == 3:
+                    print(vnf.restart_vnf(parts[2]))
+                elif subcmd == "logs" and len(parts) == 3:
+                    print(vnf.get_logs(parts[2]))
+                else:
+                    print("Comandos disponíveis: vnf list | vnf exec <name> <cmd> | vnf restart <name> | vnf logs <name>")
+
             
             else:
                 print(f"Unknown command: {user_input}")

@@ -23,21 +23,46 @@ def write_cpu_session(p4info_helper, sw, session_id, cpu_replicas):
         sw.WritePREEntry(clone_entry)
         print(f"Installed clone session {session_id} on {sw.name}")
 
-# Function to install a default action entry into a table
 def write_default_table_action(p4info_helper, sw, table, intended_action):
+    """
+    Safely write the default (table-wide) action for a given table.
+    Handles cases where the table has no current default set yet.
+    """
+
     table_id = p4info_helper.get_tables_id(table)
-    current_action_id = sw.getDefaultAction(table_id).action.action.action_id
 
-    intended_action_id = p4info_helper.get_actions_id(intended_action)
+    # Try to read the current default action, but handle empty cases gracefully
+    try:
+        current_action = sw.getDefaultAction(table_id)
+        if current_action is not None and current_action.action.HasField("action"):
+            current_action_id = current_action.action.action.action_id
+        else:
+            current_action_id = None
+    except Exception:
+        current_action_id = None
 
+    # Resolve intended action ID
+    try:
+        intended_action_id = p4info_helper.get_actions_id(intended_action)
+    except Exception as e:
+        print(f"⚠️  Unknown intended action '{intended_action}' for {table} on {sw.name}: {e}")
+        return
+
+    # Only write if different or not yet set
     if current_action_id != intended_action_id:
-        table_entry = p4info_helper.buildTableEntry(
-            table_name=table,
-            default_action=True,
-            action_name=intended_action
-        )
-        sw.WriteTableEntry(table_entry)
-        print(f"Updated default action in {table} on {sw.name} to {intended_action}")
+        try:
+            table_entry = p4info_helper.buildTableEntry(
+                table_name=table,
+                default_action=True,
+                action_name=intended_action
+            )
+            sw.WriteTableEntry(table_entry)
+            print(f"✅ Set default action {intended_action} on {sw.name}:{table}")
+        except Exception as e:
+            print(f"❌ Failed to set default action {intended_action} on {sw.name}:{table}: {e}")
+    else:
+        # Optional: only log in verbose mode
+        pass
         
 # Function to compare the current rule with the expected rule and write it if they differ
 def compare_and_write_rule(helper, switch, table, match, expected_action, expected_params, state):
