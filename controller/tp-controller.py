@@ -454,7 +454,31 @@ def _monitor_single_tunnel(connections, program_config, tcfg, interval, threshol
             print(f"[{name}] no switch needed\n")
 
         sleep(interval * sleep_boost)
-        
+
+###############   SERVICE CHAINS FUNCTIONS   ###############
+
+def setup_service_chains(connections, program_config, sc_config, state):
+    for chain in sc_config.get("chains", []):
+        sw_name = chain["switch"]
+        table   = chain["table"]
+        rules   = chain.get("rules", [])
+
+        if sw_name not in connections:
+            print(f"⚠️ Switch {sw_name} from service_chains.json not in active connections, skipping.")
+            continue
+
+        sw     = connections[sw_name]
+        helper = program_config[sw_name]["helper"]
+
+        # garantir que temos o dicionário dessa tabela no state
+        state.setdefault(sw_name, {}).setdefault(table, {})
+
+        for rule in rules:
+            match  = rule["match"]
+            action = rule["action"]
+            params = rule.get("params", {})
+            # usa a tua função já existente, que atualiza o state
+            wr.compare_and_write_rule(helper, sw, table, match, action, params, state)
 
 ###############   RESET FUNCTIONS   ###############
 
@@ -681,12 +705,33 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
         # Setup the tunnels and start the load balancing threads
         setup_tunnels(connections, program_config, tunnels_config, tunnels, state)
 
+        controller_dir = os.path.dirname(os.path.abspath(__file__))
+        sc_config_path = os.path.join(controller_dir, "..", "configs", "service_chains.json")
+        sc_config_path = os.path.normpath(sc_config_path)
+        if os.path.exists(sc_config_path):
+            with open(sc_config_path) as f:
+                sc_config = json.load(f)
+            setup_service_chains(connections, program_config, sc_config, state)
+        else:
+            sc_config = {}
+
         # Loop to handle user input for resetting switches and showing state
         while True:
-            user_input = input("\n>>> \n").strip()
+            try:
+                user_input = input("\n>>> ").strip()
+            except EOFError:
+                # ex: Ctrl+D
+                print("\nEOF received, shutting down...")
+                graceful_shutdown(clones, tunnels)
+                break
+
+            # ignore empty lines or comment lines
+            if not user_input or user_input.startswith("#"):
+                continue
+
             parts = user_input.split()
             cmd = parts[0].lower()
-            
+
             if cmd == "reset" and len(parts) == 2:
                 switches_config, program_config, tunnels_config, clone_config = handle_reset(
                         parts[1], switches_config_path, switch_programs_path,
@@ -696,7 +741,7 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
 
             elif cmd == "show" and len(parts) == 2:
                 handle_show(parts[1], connections, program_config, state)
-                                    
+
             elif cmd in ["exit", "quit", "q"]:
                 print("Exiting by input...")
                 graceful_shutdown(clones, tunnels)
@@ -721,7 +766,17 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
                 else:
                     print("Comandos disponíveis: vnf list | vnf exec <name> <cmd> | vnf restart <name> | vnf logs <name>")
 
-            
+            elif cmd == "sc" and len(parts) == 2 and parts[1] == "reload":
+                controller_dir = os.path.dirname(os.path.abspath(__file__))
+                sc_config_path = os.path.normpath(os.path.join(controller_dir, "..", "configs", "service_chains.json"))
+                if os.path.exists(sc_config_path):
+                    with open(sc_config_path) as f:
+                        sc_config = json.load(f)
+                    setup_service_chains(connections, program_config, sc_config, state)
+                    print("✅ Service chains reloaded.")
+                else:
+                    print("⚠️ configs/service_chains.json not found.")
+
             else:
                 print(f"Unknown command: {user_input}")
 

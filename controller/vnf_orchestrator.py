@@ -1,24 +1,40 @@
 #!/usr/bin/env python3
-"""
-vnf_orchestrator.py
-Módulo auxiliar para gerir VNFs em Containernet/Docker a partir do controller.
-"""
-
 import docker
-import subprocess
 
 # Inicializa cliente Docker
 client = docker.from_env()
 
+def _resolve_container(name: str):
+    """
+    Tenta obter o container pelo nome exato.
+    Se não existir, tenta com prefixo 'mn.' (padrão do Containernet).
+    """
+    # tenta exatamente como veio
+    try:
+        return client.containers.get(name)
+    except docker.errors.NotFound:
+        pass
+
+    # tenta com prefixo mn.
+    if not name.startswith("mn."):
+        alt_name = f"mn.{name}"
+        try:
+            return client.containers.get(alt_name)
+        except docker.errors.NotFound:
+            pass
+
+    return None
+
 
 def list_vnfs():
     """
-    Lista todos os containers VNFs ativos (mn.* ou vnf-base).
+    Lista todos os containers VNFs ativos (mn.* ou imagens que contenham 'vnf').
     """
     containers = client.containers.list(all=True)
     vnf_list = []
     for c in containers:
-        if c.name.startswith("mn.") or "vnf" in c.image.tags[0]:
+        # aceita ambos: mn.vfw / mn.vmon / mn.vlb e imagens com 'vnf'
+        if c.name.startswith("mn.") or (c.image.tags and any("vnf" in t for t in c.image.tags)):
             vnf_list.append({
                 "name": c.name,
                 "status": c.status,
@@ -29,42 +45,31 @@ def list_vnfs():
 
 def exec_in_vnf(name, cmd):
     """
-    Executa um comando dentro de um container VNF (por exemplo iptables -L).
+    Executa um comando dentro de um container VNF.
+    Aceita 'mn.vfw' e também 'vfw'.
     """
     try:
-        container = client.containers.get(name)
+        container = _resolve_container(name)
+        if container is None:
+            return f"❌ Container '{name}' não encontrado (nem como 'mn.{name}')."
         result = container.exec_run(cmd)
-        output = result.output.decode('utf-8')
+        output = result.output.decode('utf-8', errors='ignore')
         return output.strip()
-    except docker.errors.NotFound:
-        return f"❌ Container '{name}' não encontrado."
     except Exception as e:
         return f"⚠️ Erro ao executar comando em {name}: {e}"
 
 
 def restart_vnf(name):
-    """
-    Reinicia uma VNF existente (sem a remover).
-    """
-    try:
-        container = client.containers.get(name)
-        container.restart()
-        return f"🔄 VNF {name} reiniciada com sucesso."
-    except docker.errors.NotFound:
-        return f"❌ Container '{name}' não encontrado."
-    except Exception as e:
-        return f"⚠️ Erro ao reiniciar {name}: {e}"
+    container = _resolve_container(name)
+    if container is None:
+        return f"❌ Container '{name}' não encontrado (nem como 'mn.{name}')."
+    container.restart()
+    return f"🔄 VNF {container.name} reiniciada com sucesso."
 
 
 def get_logs(name, tail=20):
-    """
-    Mostra as últimas linhas de log do container.
-    """
-    try:
-        container = client.containers.get(name)
-        logs = container.logs(tail=tail).decode('utf-8')
-        return logs
-    except docker.errors.NotFound:
-        return f"❌ Container '{name}' não encontrado."
-    except Exception as e:
-        return f"⚠️ Erro ao obter logs de {name}: {e}"
+    container = _resolve_container(name)
+    if container is None:
+        return f"❌ Container '{name}' não encontrado (nem como 'mn.{name}')."
+    logs = container.logs(tail=tail).decode('utf-8', errors='ignore')
+    return logs

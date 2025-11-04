@@ -148,19 +148,19 @@ def main():
     vlb = net.addDocker(
         'vlb',
         dimage='vnf-base',
-        dcmd='sh -c "sleep infinity"',
+        dcmd='/entrypoint.sh',
         docker_args={'network_mode': 'none'}
     )
     vmon = net.addDocker(
         'vmon',
         dimage='vnf-base',
-        dcmd='sh -c "sleep infinity"',
+        dcmd='/entrypoint.sh',
         docker_args={'network_mode': 'none'}
     )
     vfw = net.addDocker(
         'vfw',
         dimage='vnf-base',
-        dcmd='sh -c "sleep infinity"',
+        dcmd='/entrypoint.sh',
         docker_args={'network_mode': 'none'}
     )
 
