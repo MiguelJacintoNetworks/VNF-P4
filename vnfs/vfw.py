@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import subprocess
+import os
 
 app = Flask(__name__)
 
@@ -33,6 +34,27 @@ def add_rule():
     base_cmd += ["-j", data.get("action", "DROP")]
     out, rc = run_iptables(base_cmd)
     return jsonify({"rc": rc, "cmd": " ".join(base_cmd), "output": out})
+
+@app.route("/block", methods=["POST"])
+def block():
+    """Bloqueia tráfego específico com iptables."""
+    data = request.get_json(force=True)
+    dst = data.get("dst")
+    port = data.get("port")
+    proto = data.get("proto", "tcp")
+
+    if not dst or not port:
+        return jsonify({"rc": 1, "error": "dst e port obrigatórios"})
+
+    cmd = f"iptables -A FORWARD -p {proto} -d {dst} --dport {port} -j DROP"
+    os.system(cmd)
+    return jsonify({"rc": 0, "cmd": cmd})
+
+@app.route("/clear", methods=["POST"])
+def clear():
+    """Limpa todas as regras da firewall."""
+    os.system("iptables -F")
+    return jsonify({"rc": 0})
 
 if __name__ == "__main__":
     # podes também aqui pôr as políticas base (ACCEPT, RELATED, etc.)
