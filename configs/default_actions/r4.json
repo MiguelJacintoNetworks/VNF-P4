@@ -5,6 +5,5 @@
     "MyIngress.labelLookup": "MyIngress.drop",
     "MyIngress.checkDirection": "MyIngress.drop",
     "MyIngress.allowedPortsTCP": "NoAction",
-    "MyIngress.allowedPortsUDP": "NoAction",
-    "MyIngress.serviceChainEgress": "NoAction"
+    "MyIngress.allowedPortsUDP": "NoAction"
 }

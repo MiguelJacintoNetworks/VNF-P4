@@ -17,14 +17,9 @@ RUN apt update && apt install -y --no-install-recommends \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
-# libs python para API e métricas
 RUN pip3 install flask prometheus_client
 
-# copia o entrypoint e os scripts das VNFs
 COPY entrypoint.sh /entrypoint.sh
-COPY vmon.py /opt/vmon.py
-COPY vfw.py  /opt/vfw.py
-COPY vlb.py  /opt/vlb.py
 
 RUN chmod +x /entrypoint.sh
 

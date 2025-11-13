@@ -24,68 +24,6 @@ import p4runtime_lib.bmv2
 import p4runtime_lib.helper
 from p4runtime_lib.switch import ShutdownAllSwitchConnections #, connections
 
-try:
-    import vnf_orchestrator as vnf
-except ImportError:
-    vnf = None
-    print("Módulo vnf_orchestrator não encontrado. Gestão de VNFs desativada.")
-
-###################   VNF HIGH-LEVEL API   ###################
-
-def fw_get_rules():
-    """Obtém as regras da firewall (iptables)."""
-    try:
-        output = vnf.exec_in_vnf("mn.vfw", "curl -s http://127.0.0.1:5001/rules")
-        data = json.loads(output)
-        return data.get("output", "Sem regras encontradas.").strip()
-    except Exception as e:
-        return f"❌ Erro ao obter regras da firewall: {e}"
-
-def fw_block(dst, port, proto="tcp"):
-    """Adiciona uma regra de bloqueio (drop) à firewall."""
-    payload = json.dumps({"dst": dst, "port": port, "proto": proto})
-    try:
-        cmd = (
-            "curl -s -X POST -H 'Content-Type: application/json' "
-            f"-d '{payload}' http://127.0.0.1:5001/block"
-        )
-        output = vnf.exec_in_vnf("mn.vfw", cmd)
-        data = json.loads(output)
-        if data.get("rc", 1) == 0:
-            return f"✅ Regra adicionada: {data.get('cmd')}"
-        else:
-            return f"⚠️ Falha ao adicionar regra: {output}"
-    except Exception as e:
-        return f"❌ Erro ao comunicar com a firewall: {e}"
-
-def fw_clear():
-    """Limpa todas as regras de firewall."""
-    try:
-        output = vnf.exec_in_vnf("mn.vfw", "curl -s -X POST http://127.0.0.1:5001/clear")
-        data = json.loads(output)
-        if data.get("rc", 1) == 0:
-            return "✅ Todas as regras foram removidas da firewall."
-        return f"⚠️ Falha ao limpar firewall: {output}"
-    except Exception as e:
-        return f"❌ Erro ao comunicar com a firewall: {e}"
-
-def mon_get_metrics():
-    """Obtém métricas do vMonitor (Prometheus)."""
-    try:
-        output = vnf.exec_in_vnf("mn.vmon", "curl -s http://127.0.0.1:5000/metrics")
-        # Mostra apenas as 10 primeiras linhas
-        lines = output.strip().splitlines()[:10]
-        return "\n".join(lines) + "\n[…]"
-    except Exception as e:
-        return f"❌ Erro ao obter métricas: {e}"
-
-def lb_get_status():
-    """Obtém o estado atual do vLoadBalancer."""
-    try:
-        return vnf.exec_in_vnf("mn.vlb", "curl -s http://127.0.0.1:5002/health")
-    except Exception as e:
-        return f"❌ Erro ao obter estado do load balancer: {e}"
-
 # Define a custom CPU header that encapsules additional information sent by the data plane
 class CpuHeader(Packet):
     name = 'CpuPacket'
@@ -510,31 +448,7 @@ def _monitor_single_tunnel(connections, program_config, tcfg, interval, threshol
             print(f"[{name}] no switch needed\n")
 
         sleep(interval * sleep_boost)
-
-###############   SERVICE CHAINS FUNCTIONS   ###############
-
-def setup_service_chains(connections, program_config, sc_config, state):
-    for chain in sc_config.get("chains", []):
-        sw_name = chain["switch"]
-        table   = chain["table"]
-        rules   = chain.get("rules", [])
-
-        if sw_name not in connections:
-            print(f"⚠️ Switch {sw_name} from service_chains.json not in active connections, skipping.")
-            continue
-
-        sw     = connections[sw_name]
-        helper = program_config[sw_name]["helper"]
-
-        # garantir que temos o dicionário dessa tabela no state
-        state.setdefault(sw_name, {}).setdefault(table, {})
-
-        for rule in rules:
-            match  = rule["match"]
-            action = rule["action"]
-            params = rule.get("params", {})
-            # usa a tua função já existente, que atualiza o state
-            wr.compare_and_write_rule(helper, sw, table, match, action, params, state)
+        
 
 ###############   RESET FUNCTIONS   ###############
 
@@ -667,68 +581,6 @@ def stop_tunnel_monitor_threads(tunnels):
         print(f"Stopped tunnel monitor for {tname}")
     tunnels.clear()
 
-###############   FEEDBACK LOOP (AUTOMATION)   ###############
-
-import re
-import time
-
-def start_feedback_loop(connections, program_config, tunnels, state, interval=5, threshold=100):
-    """
-    Thread que lê métricas do vMon periodicamente e ajusta o comportamento.
-    """
-    stop_event = threading.Event()
-    thread = threading.Thread(
-        target=_feedback_loop_worker,
-        args=(connections, program_config, tunnels, state, stop_event, interval, threshold),
-        daemon=True
-    )
-    thread.start()
-    print(f"🧠 Feedback loop iniciado (intervalo={interval}s, threshold={threshold})")
-    return stop_event, thread
-
-
-def _feedback_loop_worker(connections, program_config, tunnels, state, stop_event, interval, threshold):
-    last_value = 0
-    while not stop_event.is_set():
-        try:
-            # Lê métricas do vMon
-            output = vnf.exec_in_vnf("mn.vmon", "curl -s http://127.0.0.1:5000/metrics")
-            match = re.search(r"vmon_packets_seen_total\s+(\d+)", output)
-            if match:
-                current_value = int(match.group(1))
-                delta = current_value - last_value if last_value else 0
-                print(f"[Monitor] vMon total={current_value} Δ={delta}")
-
-                # Se o tráfego disparar → muda túnel
-                if delta > threshold:
-                    print(f"🚨 Tráfego anómalo detectado ({delta} > {threshold}) → mudando túnel")
-                    # Escolhe o primeiro túnel ativo e alterna
-                    for tname, tinfo in tunnels.items():
-                        if "state" in tinfo:
-                            next_state = 1 - tinfo["state"]
-                            _switch_tunnel_state(connections, program_config, tname, next_state, state)
-                            tinfo["state"] = next_state
-                            print(f"🔁 {tname} alterado para estado {next_state}")
-                            break
-
-                last_value = current_value
-
-        except Exception as e:
-            print(f"⚠️ Erro no feedback loop: {e}")
-
-        time.sleep(interval)
-
-
-def _switch_tunnel_state(connections, program_config, tname, next_state, state):
-    """
-    Alterna manualmente o estado de um túnel (reutiliza a estrutura do tunnels_config.json).
-    """
-    from configs import tunnels_config  # opcional, se quiseres puxar dinamicamente
-    # neste exemplo vamos supor que o tunnel está em state[...] e program_config
-    print(f"[{tname}] mudança de estado forçada para {next_state}")
-    # podes adaptar com wr.write_table_entry() tal como em change_tunnel_rules()
-
-
 
 ###############   USER INPUT HANDLERS   ###############
 
@@ -823,36 +675,12 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
         # Setup the tunnels and start the load balancing threads
         setup_tunnels(connections, program_config, tunnels_config, tunnels, state)
 
-        # Iniciar feedback loop adaptativo
-        feedback_stop, feedback_thread = start_feedback_loop(connections, program_config, tunnels, state)
-
-        controller_dir = os.path.dirname(os.path.abspath(__file__))
-        sc_config_path = os.path.join(controller_dir, "..", "configs", "service_chains.json")
-        sc_config_path = os.path.normpath(sc_config_path)
-        if os.path.exists(sc_config_path):
-            with open(sc_config_path) as f:
-                sc_config = json.load(f)
-            setup_service_chains(connections, program_config, sc_config, state)
-        else:
-            sc_config = {}
-
         # Loop to handle user input for resetting switches and showing state
         while True:
-            try:
-                user_input = input("\n>>> ").strip()
-            except EOFError:
-                # ex: Ctrl+D
-                print("\nEOF received, shutting down...")
-                graceful_shutdown(clones, tunnels)
-                break
-
-            # ignore empty lines or comment lines
-            if not user_input or user_input.startswith("#"):
-                continue
-
+            user_input = input("\n>>> \n").strip()
             parts = user_input.split()
             cmd = parts[0].lower()
-
+            
             if cmd == "reset" and len(parts) == 2:
                 switches_config, program_config, tunnels_config, clone_config = handle_reset(
                         parts[1], switches_config_path, switch_programs_path,
@@ -862,77 +690,18 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
 
             elif cmd == "show" and len(parts) == 2:
                 handle_show(parts[1], connections, program_config, state)
-
+                                    
             elif cmd in ["exit", "quit", "q"]:
                 print("Exiting by input...")
                 graceful_shutdown(clones, tunnels)
                 break
-
-            elif cmd == "vnf" and len(parts) >= 2:
-                subcmd = parts[1].lower()
-                if subcmd == "list":
-                    vnfs = vnf.list_vnfs()
-                    print("\n--- VNFs Ativas ---")
-                    for v in vnfs:
-                        print(f"{v['name']} ({v['image']}) → {v['status']}")
-                    print()
-                elif subcmd == "exec" and len(parts) >= 4:
-                    name = parts[2]
-                    command = " ".join(parts[3:])
-                    print(vnf.exec_in_vnf(name, command))
-                elif subcmd == "restart" and len(parts) == 3:
-                    print(vnf.restart_vnf(parts[2]))
-                elif subcmd == "logs" and len(parts) == 3:
-                    print(vnf.get_logs(parts[2]))
-                else:
-                    print("Comandos disponíveis: vnf list | vnf exec <name> <cmd> | vnf restart <name> | vnf logs <name>")
-
-            elif cmd == "sc" and len(parts) == 2 and parts[1] == "reload":
-                controller_dir = os.path.dirname(os.path.abspath(__file__))
-                sc_config_path = os.path.normpath(os.path.join(controller_dir, "..", "configs", "service_chains.json"))
-                if os.path.exists(sc_config_path):
-                    with open(sc_config_path) as f:
-                        sc_config = json.load(f)
-                    setup_service_chains(connections, program_config, sc_config, state)
-                    print("✅ Service chains reloaded.")
-                else:
-                    print("⚠️ configs/service_chains.json not found.")
-
-            elif cmd == "fw":
-                if len(parts) == 1:
-                    print("Comandos disponíveis: fw show | fw block <dst> <port> [proto] | fw clear")
-                elif parts[1] == "show":
-                    print(fw_get_rules())
-                elif parts[1] == "block" and len(parts) >= 4:
-                    dst = parts[2]
-                    port = parts[3]
-                    proto = parts[4] if len(parts) >= 5 else "tcp"
-                    print(fw_block(dst, port, proto))
-                elif parts[1] == "clear":
-                    print(fw_clear())
-                else:
-                    print("❌ Uso: fw show | fw block <dst> <port> [proto] | fw clear")
-
-            elif cmd == "mon":
-                if len(parts) >= 2 and parts[1] == "metrics":
-                    print(mon_get_metrics())
-                else:
-                    print("Uso: mon metrics")
-
-            elif cmd == "lb":
-                if len(parts) >= 2 and parts[1] == "status":
-                    print(lb_get_status())
-                else:
-                    print("Uso: lb status")
-
+            
             else:
                 print(f"Unknown command: {user_input}")
 
     except KeyboardInterrupt:
         print("Controller interrupted by user.")
         graceful_shutdown(clones, tunnels)
-        if "feedback_stop" in locals():
-            feedback_stop.set()
 
     except grpc.RpcError as e:
         print("gRPC Error:", e.details(), end=' ')

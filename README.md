@@ -24,7 +24,7 @@ sudo docker rm -f mn.vlb mn.vmon mn.vfw 2>/dev/null
 sudo docker rmi alpine:latest
 
 # Construir Imagem a Partir do DockerFile:
-sudo docker build -t vnf-base .
+sudo docker build -t vnf .
 
 # MININET:
 

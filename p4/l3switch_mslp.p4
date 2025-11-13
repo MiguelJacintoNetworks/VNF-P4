@@ -319,34 +319,11 @@ control MyIngress(inout headers hdr,
         );
     }
 
-    // ====================================================================
-    //  Service Chaining - Ingress (R1)
-    //  Decide se o tráfego deve ir para o vLoadBalancer ou seguir pelo túnel
-    // ====================================================================
-
-    action to_vlb(bit<9> port) {
-        standard_metadata.egress_spec = port;
-    }
-
-    table serviceChainIngress {
-        key = {
-            hdr.ipv4.dstAddr: lpm;
-        }
-        actions = {
-            to_vlb;
-            NoAction;
-        }
-        size = 128;
-        default_action = NoAction();
-    }
-
     apply {
         // If it is the original packet
         if(standard_metadata.instance_type == 0){
             tunnel_counter.count((bit<32>) standard_metadata.ingress_port); // Count new packet in
         }
-
-        serviceChainIngress.apply();
 
         if(hdr.mslp.isValid()) { // If encapsulated
             switch(labelLookup.apply().action_run) {
