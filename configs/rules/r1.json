@@ -24,6 +24,10 @@
         "{\"hdr.ipv4.dstAddr\": [\"10.0.2.0\", 24]}": {
             "action": "MyIngress.sendTunnel",
             "params": {}
+        },
+        "{\"hdr.ipv4.dstAddr\": [\"10.0.3.0\", 24]}": {
+            "action": "MyIngress.sendTunnel",
+            "params": {}
         }
     },
     "MyIngress.labelLookup": {

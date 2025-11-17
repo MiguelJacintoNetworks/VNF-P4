@@ -3,10 +3,10 @@
 
 from mininet.net import Mininet
 from mininet.net import Containernet
-from mininet.node import Host
 from mininet.topo import Topo
 from mininet.log import setLogLevel, info
 from mininet.cli import CLI
+from mininet.node import Host
 
 from p4_mininet import P4Host
 from p4runtime_switch import P4RuntimeSwitch
@@ -118,7 +118,7 @@ class SingleSwitchTopo(Topo):
                     mac = mac_base % (0,3))
         h4 = self.addHost('h4',
                     cls = Host,
-                    ip = host_ip_base % (2,1),
+                    ip = host_ip_base % (3,1),
                     mac = mac_base % (0,4))
         
         # Add links
@@ -154,7 +154,7 @@ def main():
     net = Containernet(topo = topo,
                   host = P4Host,
                   controller = None)
-    
+
     vlb = net.addDocker(
         'vlb',
         dimage='vnf',
@@ -167,9 +167,19 @@ def main():
 
     r4 = net.get('r4')
     h4 = net.get('h4')
-    
-    net.addLink(r4, vlb, port1= 1, addr1= mac_base % (4,1), addr2="aa:00:00:00:10:01")
-    net.addLink(vlb, h4)
+
+    net.addLink(
+        r4, vlb,
+        port1=1,
+        addr1=mac_base % (4,1),
+        addr2="aa:00:00:00:10:01"
+    )
+
+    net.addLink(
+        vlb, h4,
+        addr1="aa:00:00:00:10:02",
+        addr2=mac_base % (0,4)
+    )
 
     # Here, the mininet will use the constructor (__init__()) of the P4Switch class, 
     # with the arguments passed to the SingleSwitchTopo class in order to create 
@@ -177,32 +187,6 @@ def main():
     net.start()
     
     sleep(1)  # time for the host and switch confs to take effect
-
-    vlb.cmd("ip addr flush dev eth0 || true")
-    vlb.cmd("ip link set dev eth0 down || true")
-
-    vlb.cmd('ip addr flush dev vlb-eth0 || true')
-    vlb.cmd('ip addr flush dev vlb-eth1 || true')
-
-    r4.cmd('ip addr add 10.0.20.1/30 dev r4-eth1')
-    vlb.cmd('ip addr add 10.0.20.2/30 dev vlb-eth0')
-
-    vlb.cmd('ip addr add 10.0.2.254/24 dev vlb-eth1')
-    h4.cmd('ip addr flush dev h4-eth0 || true')
-    h4.cmd('ip addr add 10.0.2.1/24 dev h4-eth0')
-
-    r4.cmd('ip link set r4-eth1 up')
-    vlb.cmd('ip link set vlb-eth0 up')
-    vlb.cmd('ip link set vlb-eth1 up')
-    h4.cmd('ip link set h4-eth0 up')
-
-    vlb.cmd('ip route add 10.0.1.0/24 via 10.0.20.1')
-    r4.cmd('ip route add 10.0.2.0/24 via 10.0.20.2')
-    
-    h4.cmd('ip route del default || true')
-    h4.cmd('ip route add default via 10.0.2.254 dev h4-eth0')
-
-    disable_rp_filter_for_veth()
 
     # Configurar ARP tables dos hosts
 
@@ -216,7 +200,33 @@ def main():
     
     h1.setDefaultRoute("dev eth0 via 10.0.1.254")
     h2.setDefaultRoute("dev eth0 via 10.0.1.254")
-    h3.setDefaultRoute("dev eth0 via 10.0.1.254")
+    h3.setDefaultRoute("dev eth0 via 10.0.1.254")    
+
+    vlb.cmd("ip link set dev eth0 down || true")
+
+    vlb.cmd("ip link set dev vlb-eth0 up")
+    vlb.cmd("ip addr add 10.0.2.1/24 dev vlb-eth0")
+
+    vlb.cmd("ip neigh add 10.0.2.254 lladdr aa:00:00:00:04:01 dev vlb-eth0")
+    vlb.cmd("ip route add default via 10.0.2.254 dev vlb-eth0")
+
+    vlb.cmd("ip link set dev vlb-eth1 up")
+    vlb.cmd("ip addr add 10.0.3.254/24 dev vlb-eth1")
+
+    vlb.cmd("ip neigh add 10.0.3.1 lladdr aa:00:00:00:00:04 dev vlb-eth1")
+
+    vlb.cmd("ethtool -K vlb-eth0 rx off tx off tso off gso off gro off || true")
+    vlb.cmd("ethtool -K vlb-eth1 rx off tx off tso off gso off gro off || true")
+
+    h4.cmd("ip addr flush dev h4-eth0")
+    h4.cmd("ip addr add 10.0.3.1/24 dev h4-eth0")
+    h4.cmd("ip link set h4-eth0 up")
+
+    h4.cmd("ip neigh add 10.0.3.254 lladdr aa:00:00:00:10:02 dev h4-eth0")
+
+    h4.cmd("ip route add default via 10.0.3.254 dev h4-eth0")
+
+    disable_rp_filter_for_veth()
 
     print("Ready !")
 

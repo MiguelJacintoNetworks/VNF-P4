@@ -7,6 +7,7 @@ RUN apt update && apt install -y --no-install-recommends \
     iputils-ping \
     iptables \
     net-tools \
+    ethtool \
     tcpdump \
     curl \
     vim \

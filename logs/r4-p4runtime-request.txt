@@ -1,15 +1,15 @@
 
-[2025-11-13 13:04:46.979] /p4.v1.P4Runtime/GetForwardingPipelineConfig
+[2025-11-17 19:12:01.455] /p4.v1.P4Runtime/GetForwardingPipelineConfig
 ---
 device_id: 5
 ---
 
-[2025-11-13 13:04:46.980] /p4.v1.P4Runtime/SetForwardingPipelineConfig
+[2025-11-17 19:12:01.457] /p4.v1.P4Runtime/SetForwardingPipelineConfig
 ---
 Message too long (183418 bytes)! Skipping log...
 ---
 
-[2025-11-13 13:04:47.012] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.699] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -20,7 +20,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.013] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.703] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -31,7 +31,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.014] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.705] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -42,7 +42,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.014] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.706] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -53,7 +53,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.015] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.707] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -64,7 +64,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.016] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.708] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -75,7 +75,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.016] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.709] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -86,12 +86,12 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.025] /p4.v1.P4Runtime/GetForwardingPipelineConfig
+[2025-11-17 19:12:01.726] /p4.v1.P4Runtime/GetForwardingPipelineConfig
 ---
 device_id: 5
 ---
 
-[2025-11-13 13:04:47.025] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.727] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -100,7 +100,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.039] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.757] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -114,8 +114,8 @@ updates {
       match {
         field_id: 1
         lpm {
-          value: "\n\000\002\001"
-          prefix_len: 32
+          value: "\n\000\002\000"
+          prefix_len: 24
         }
       }
       action {
@@ -136,7 +136,43 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.040] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.758] /p4.v1.P4Runtime/Write
+---
+device_id: 5
+election_id {
+  low: 1
+}
+updates {
+  type: INSERT
+  entity {
+    table_entry {
+      table_id: 47604142
+      match {
+        field_id: 1
+        lpm {
+          value: "\n\000\003\000"
+          prefix_len: 24
+        }
+      }
+      action {
+        action {
+          action_id: 29683729
+          params {
+            param_id: 1
+            value: "\000\001"
+          }
+          params {
+            param_id: 2
+            value: "\252\000\000\000\020\001"
+          }
+        }
+      }
+    }
+  }
+}
+---
+
+[2025-11-17 19:12:01.759] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -164,7 +200,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.041] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.760] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -191,7 +227,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.042] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.763] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -226,7 +262,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.043] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.766] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -261,7 +297,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.043] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.769] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -292,7 +328,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.045] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.771] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -323,7 +359,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.046] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.772] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -354,7 +390,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.046] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.774] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -391,7 +427,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.047] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.776] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -428,7 +464,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.048] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.778] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -443,80 +479,6 @@ updates {
         field_id: 1
         exact {
           value: "\000\002"
-        }
-      }
-      match {
-        field_id: 2
-        exact {
-          value: "\000\001"
-        }
-      }
-      action {
-        action {
-          action_id: 27114974
-          params {
-            param_id: 1
-            value: "\001"
-          }
-        }
-      }
-    }
-  }
-}
----
-
-[2025-11-13 13:04:47.048] /p4.v1.P4Runtime/Write
----
-device_id: 5
-election_id {
-  low: 1
-}
-updates {
-  type: INSERT
-  entity {
-    table_entry {
-      table_id: 41823037
-      match {
-        field_id: 1
-        exact {
-          value: "\000\002"
-        }
-      }
-      match {
-        field_id: 2
-        exact {
-          value: "\000\003"
-        }
-      }
-      action {
-        action {
-          action_id: 27114974
-          params {
-            param_id: 1
-            value: "\000"
-          }
-        }
-      }
-    }
-  }
-}
----
-
-[2025-11-13 13:04:47.049] /p4.v1.P4Runtime/Write
----
-device_id: 5
-election_id {
-  low: 1
-}
-updates {
-  type: INSERT
-  entity {
-    table_entry {
-      table_id: 41823037
-      match {
-        field_id: 1
-        exact {
-          value: "\000\003"
         }
       }
       match {
@@ -539,7 +501,81 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.049] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.781] /p4.v1.P4Runtime/Write
+---
+device_id: 5
+election_id {
+  low: 1
+}
+updates {
+  type: INSERT
+  entity {
+    table_entry {
+      table_id: 41823037
+      match {
+        field_id: 1
+        exact {
+          value: "\000\002"
+        }
+      }
+      match {
+        field_id: 2
+        exact {
+          value: "\000\003"
+        }
+      }
+      action {
+        action {
+          action_id: 27114974
+          params {
+            param_id: 1
+            value: "\000"
+          }
+        }
+      }
+    }
+  }
+}
+---
+
+[2025-11-17 19:12:01.782] /p4.v1.P4Runtime/Write
+---
+device_id: 5
+election_id {
+  low: 1
+}
+updates {
+  type: INSERT
+  entity {
+    table_entry {
+      table_id: 41823037
+      match {
+        field_id: 1
+        exact {
+          value: "\000\003"
+        }
+      }
+      match {
+        field_id: 2
+        exact {
+          value: "\000\001"
+        }
+      }
+      action {
+        action {
+          action_id: 27114974
+          params {
+            param_id: 1
+            value: "\001"
+          }
+        }
+      }
+    }
+  }
+}
+---
+
+[2025-11-17 19:12:01.784] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -576,7 +612,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.050] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.786] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -603,7 +639,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.051] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.789] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -630,7 +666,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.059] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.815] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -661,7 +697,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.059] /p4.v1.P4Runtime/Write
+[2025-11-17 19:12:01.817] /p4.v1.P4Runtime/Write
 ---
 device_id: 5
 election_id {
@@ -692,7 +728,7 @@ updates {
 }
 ---
 
-[2025-11-13 13:04:47.061] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.823] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -705,7 +741,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:04:47.061] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:01.824] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -718,7 +754,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:05:07.067] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:21.850] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -731,7 +767,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:05:07.068] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:21.850] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -744,7 +780,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:05:27.083] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:41.874] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
@@ -757,1671 +793,7 @@ entities {
 }
 ---
 
-[2025-11-13 13:05:27.084] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:05:47.105] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:05:47.106] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:06:07.130] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:06:07.131] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:06:27.138] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:06:27.139] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:06:47.159] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:06:47.160] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:07:07.172] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:07:07.173] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:07:27.195] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:07:27.196] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:07:47.211] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:07:47.213] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:08:07.236] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:08:07.237] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:08:27.252] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:08:27.252] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:08:47.274] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:08:47.274] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:09:07.280] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:09:07.281] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:09:27.302] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:09:27.302] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:09:47.313] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:09:47.314] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:10:07.330] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:10:07.331] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:10:27.357] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:10:27.358] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:10:47.364] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:10:47.364] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:11:07.371] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:11:07.372] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:11:27.396] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:11:27.397] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:11:47.412] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:11:47.413] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:12:07.436] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:12:07.438] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:12:27.461] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:12:27.462] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:12:47.486] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:12:47.487] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:13:07.503] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:13:07.504] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:13:27.515] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:13:27.516] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:13:47.527] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:13:47.528] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:14:07.535] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:14:07.536] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:14:27.555] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:14:27.556] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:14:47.573] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:14:47.574] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:15:07.588] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:15:07.589] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:15:27.613] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:15:27.615] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:15:47.638] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:15:47.638] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:16:07.662] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:16:07.663] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:16:27.685] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:16:27.686] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:16:47.709] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:16:47.709] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:17:07.732] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:17:07.734] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:17:27.741] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:17:27.742] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:17:47.765] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:17:47.766] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:18:07.774] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:18:07.774] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:18:27.798] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:18:27.798] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:18:47.820] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:18:47.820] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:19:07.841] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:19:07.842] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:19:27.858] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:19:27.858] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:19:47.876] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:19:47.876] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:20:07.890] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:20:07.891] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:20:27.900] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:20:27.901] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:20:47.911] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:20:47.912] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:21:07.935] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:21:07.936] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:21:27.960] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:21:27.961] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:21:47.983] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:21:47.984] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:22:07.990] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:22:07.991] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:22:28.015] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:22:28.016] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:22:48.032] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:22:48.034] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:23:08.040] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:23:08.041] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:23:28.053] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:23:28.054] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:23:48.065] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:23:48.066] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:24:08.091] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:24:08.092] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:24:28.096] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:24:28.097] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:24:48.142] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:24:48.190] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:25:08.216] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:25:08.216] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:25:28.230] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:25:28.230] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:25:48.252] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:25:48.252] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:26:08.261] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:26:08.262] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:26:28.278] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:26:28.279] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 2
-    }
-  }
-}
----
-
-[2025-11-13 13:26:48.301] /p4.v1.P4Runtime/Read
----
-device_id: 5
-entities {
-  counter_entry {
-    counter_id: 310394195
-    index {
-      index: 3
-    }
-  }
-}
----
-
-[2025-11-13 13:26:48.302] /p4.v1.P4Runtime/Read
+[2025-11-17 19:12:41.875] /p4.v1.P4Runtime/Read
 ---
 device_id: 5
 entities {
