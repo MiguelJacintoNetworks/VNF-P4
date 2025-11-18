@@ -21,7 +21,7 @@ sudo docker ps -a
 sudo docker rm -f mn.vlb mn.vmon mn.vfw 2>/dev/null
 
 # Apagar Imagens:
-sudo docker rmi alpine:latest
+sudo docker rmi vnf:latest
 
 # Construir Imagem a Partir do DockerFile:
 sudo docker build -t vnf .
@@ -40,4 +40,7 @@ h4 curl -v http://10.0.1.1:80/
 
 r1 simple_switch_CLI --thrift-port 9091
 
-vlb ethtool -K vlb-eth0 rx off tx off tso off gso off gro off
+h4 iperf3 -s -p 81 &
+h5 iperf3 -s -p 81 &
+h6 iperf3 -s -p 81 &
+h1 iperf3 -c vlb -p 81 -M 500

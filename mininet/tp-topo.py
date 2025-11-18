@@ -42,12 +42,17 @@ parser.add_argument('--grpc-port', help='gRPC server port for controller comm',
 
 args = parser.parse_args()
 
-
 sw_mac_base = "cc:00:00:00:01:%02x"
 mac_base = "aa:00:00:00:%02x:%02x"
 
 host_ip_base = "10.0.%d.%d/24"
 
+def disable_rp_filter_for_veth():
+    os.system("sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1")
+    for d in glob.glob("/proc/sys/net/ipv4/conf/veth*"):
+        rp_file = os.path.join(d, "rp_filter")
+        if os.path.isfile(rp_file):
+            os.system(f"echo 0 > {rp_file}")
 
 class SingleSwitchTopo(Topo):
     def __init__(self, sw_path, thrift_port, grpc_port, **opts):
@@ -120,7 +125,15 @@ class SingleSwitchTopo(Topo):
                     cls = Host,
                     ip = host_ip_base % (3,1),
                     mac = mac_base % (0,4))
-        
+        h5 = self.addHost('h5',
+                    cls = Host,
+                    ip = host_ip_base % (3,2),
+                    mac = mac_base % (0,5))
+        h6 = self.addHost('h6',
+                    cls = Host,
+                    ip = host_ip_base % (3,3),
+                    mac = mac_base % (0,6))  
+
         # Add links
         self.addLink(h1, s1, port2= 1, addr2= sw_mac_base % 1)
         self.addLink(h2, s1, port2= 2, addr2= sw_mac_base % 2)
@@ -136,12 +149,6 @@ class SingleSwitchTopo(Topo):
 
         # self.addLink(h4, r4, port2= 1, addr2= mac_base % (4,1))
 
-def disable_rp_filter_for_veth():
-    os.system("sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1")
-    for d in glob.glob("/proc/sys/net/ipv4/conf/veth*"):
-        rp_file = os.path.join(d, "rp_filter")
-        if os.path.isfile(rp_file):
-            os.system(f"echo 0 > {rp_file}")
         
 def main():
 
@@ -165,8 +172,16 @@ def main():
         }
     )
 
+    r1 = net.get('r1')
+    r2 = net.get('r2')
+    r3 = net.get('r3')
     r4 = net.get('r4')
+    r5 = net.get('r5')
+    r6 = net.get('r6')
+    s1 = net.get('s1')
     h4 = net.get('h4')
+    h5 = net.get('h5')
+    h6 = net.get('h6')
 
     net.addLink(
         r4, vlb,
@@ -179,6 +194,18 @@ def main():
         vlb, h4,
         addr1="aa:00:00:00:10:02",
         addr2=mac_base % (0,4)
+    )
+
+    net.addLink(
+        vlb, h5,
+        addr1="aa:00:00:00:10:03",
+        addr2=mac_base % (0,5)
+    )
+
+    net.addLink(
+        vlb, h6,
+        addr1="aa:00:00:00:10:04",
+        addr2=mac_base % (0,6)
     )
 
     # Here, the mininet will use the constructor (__init__()) of the P4Switch class, 
@@ -206,25 +233,87 @@ def main():
 
     vlb.cmd("ip link set dev vlb-eth0 up")
     vlb.cmd("ip addr add 10.0.2.1/24 dev vlb-eth0")
-
     vlb.cmd("ip neigh add 10.0.2.254 lladdr aa:00:00:00:04:01 dev vlb-eth0")
     vlb.cmd("ip route add default via 10.0.2.254 dev vlb-eth0")
 
     vlb.cmd("ip link set dev vlb-eth1 up")
     vlb.cmd("ip addr add 10.0.3.254/24 dev vlb-eth1")
-
     vlb.cmd("ip neigh add 10.0.3.1 lladdr aa:00:00:00:00:04 dev vlb-eth1")
+
+    vlb.cmd("ip link set dev vlb-eth2 up")
+    vlb.cmd("ip addr add 10.0.3.254/24 dev vlb-eth2")
+    vlb.cmd("ip neigh add 10.0.3.2 lladdr aa:00:00:00:00:05 dev vlb-eth2")
+
+    vlb.cmd("ip link set dev vlb-eth3 up")
+    vlb.cmd("ip addr add 10.0.3.254/24 dev vlb-eth3")
+    vlb.cmd("ip neigh add 10.0.3.3 lladdr aa:00:00:00:00:06 dev vlb-eth3")
 
     vlb.cmd("ethtool -K vlb-eth0 rx off tx off tso off gso off gro off || true")
     vlb.cmd("ethtool -K vlb-eth1 rx off tx off tso off gso off gro off || true")
+    vlb.cmd("ethtool -K vlb-eth2 rx off tx off tso off gso off gro off || true")
+    vlb.cmd("ethtool -K vlb-eth3 rx off tx off tso off gso off gro off || true")
 
     h4.cmd("ip addr flush dev h4-eth0")
     h4.cmd("ip addr add 10.0.3.1/24 dev h4-eth0")
     h4.cmd("ip link set h4-eth0 up")
-
     h4.cmd("ip neigh add 10.0.3.254 lladdr aa:00:00:00:10:02 dev h4-eth0")
-
     h4.cmd("ip route add default via 10.0.3.254 dev h4-eth0")
+
+    h5.cmd("ip addr flush dev h5-eth0")
+    h5.cmd("ip addr add 10.0.3.2/24 dev h5-eth0")
+    h5.cmd("ip link set h5-eth0 up")
+    h5.cmd("ip neigh add 10.0.3.254 lladdr aa:00:00:00:10:03 dev h5-eth0")
+    h5.cmd("ip route add default via 10.0.3.254 dev h5-eth0")
+
+    h6.cmd("ip addr flush dev h6-eth0")
+    h6.cmd("ip addr add 10.0.3.3/24 dev h6-eth0")
+    h6.cmd("ip link set h6-eth0 up")
+    h6.cmd("ip neigh add 10.0.3.254 lladdr aa:00:00:00:10:04 dev h6-eth0")
+    h6.cmd("ip route add default via 10.0.3.254 dev h6-eth0")
+
+    h4.cmd("ethtool -K h4-eth0 rx off tx off tso off gso off gro off || true")
+    h5.cmd("ethtool -K h5-eth0 rx off tx off tso off gso off gro off || true")
+    h6.cmd("ethtool -K h6-eth0 rx off tx off tso off gso off gro off || true")
+
+    r1.cmd("ethtool -K r1-eth1 rx off tx off tso off gso off gro off || true")
+    r1.cmd("ethtool -K r1-eth2 rx off tx off tso off gso off gro off || true")
+    r1.cmd("ethtool -K r1-eth3 rx off tx off tso off gso off gro off || true")
+
+    r2.cmd("ethtool -K r2-eth1 rx off tx off tso off gso off gro off || true")
+    r2.cmd("ethtool -K r2-eth2 rx off tx off tso off gso off gro off || true")
+
+    r3.cmd("ethtool -K r3-eth1 rx off tx off tso off gso off gro off || true")
+    r3.cmd("ethtool -K r3-eth2 rx off tx off tso off gso off gro off || true")
+
+    r4.cmd("ethtool -K r4-eth1 rx off tx off tso off gso off gro off || true")
+    r4.cmd("ethtool -K r4-eth2 rx off tx off tso off gso off gro off || true")
+    r4.cmd("ethtool -K r4-eth2 rx off tx off tso off gso off gro off || true")
+    
+    r5.cmd("ethtool -K r5-eth1 rx off tx off tso off gso off gro off || true")
+    r5.cmd("ethtool -K r5-eth2 rx off tx off tso off gso off gro off || true")
+
+    r6.cmd("ethtool -K r6-eth1 rx off tx off tso off gso off gro off || true")
+    r6.cmd("ethtool -K r6-eth2 rx off tx off tso off gso off gro off || true")
+
+    h1.cmd("ethtool -K eth0 rx off tx off tso off gso off gro off || true")
+    h2.cmd("ethtool -K eth0 rx off tx off tso off gso off gro off || true")
+    h3.cmd("ethtool -K eth0 rx off tx off tso off gso off gro off || true")
+
+    s1.cmd("ethtool -K s1-eth1 rx off tx off tso off gso off gro off || true")
+    s1.cmd("ethtool -K s1-eth2 rx off tx off tso off gso off gro off || true")
+    s1.cmd("ethtool -K s1-eth3 rx off tx off tso off gso off gro off || true")
+    s1.cmd("ethtool -K s1-eth4 rx off tx off tso off gso off gro off || true")
+
+    vlb.cmd("iptables -t nat -F")
+    vlb.cmd("iptables -t nat -X")
+
+    vlb.cmd("ipvsadm -C || true")
+
+    vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s lc")
+
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.3.1:81 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.3.2:81 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.3.3:81 -m")
 
     disable_rp_filter_for_veth()
 

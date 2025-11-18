@@ -6,6 +6,7 @@ RUN apt update && apt install -y --no-install-recommends \
     iproute2 \
     iputils-ping \
     iptables \
+    ipvsadm \
     net-tools \
     ethtool \
     tcpdump \
