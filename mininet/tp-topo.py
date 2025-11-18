@@ -15,6 +15,7 @@ import argparse
 import os
 import glob
 from time import sleep
+import network_tester # Import the network_tester script
 
 
 # If you look at this parser, it can identify 4 arguments
@@ -229,6 +230,9 @@ def main():
     disable_rp_filter_for_veth()
 
     print("Ready !")
+
+    # Run network tests
+    # network_tester.main(h1, h2, h3, h4)
 
     # Start the Mininet CLI, which allows interactive control of the network
     CLI( net )
