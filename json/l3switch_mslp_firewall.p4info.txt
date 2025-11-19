@@ -188,6 +188,13 @@ actions {
 }
 actions {
   preamble {
+    id: 19382928
+    name: "MyIngress.clone_to_vmon"
+    alias: "clone_to_vmon"
+  }
+}
+actions {
+  preamble {
     id: 26407428
     name: "MyIngress.rewriteMacs"
     alias: "rewriteMacs"
@@ -265,6 +272,13 @@ actions {
     id: 30582443
     name: "MyEgress.popLabel"
     alias: "popLabel"
+  }
+}
+actions {
+  preamble {
+    id: 27447180
+    name: "MyEgress.prepare_vmon_packet"
+    alias: "prepare_vmon_packet"
   }
 }
 counters {

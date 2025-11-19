@@ -11,6 +11,7 @@ typedef bit<32> ip4Addr_t;
 
 const bit<16> TYPE_IPV4 = 0x0800;
 const bit<16> TYPE_MSLP = 0x88B5;
+const bit<16> TYPE_VMON = 0x1235;
 
 const bit<8> TYPE_ICMP = 0x01;
 const bit<8> TYPE_TCP  = 0x06;
@@ -91,6 +92,14 @@ header icmp_t {
     bit<384> payload;  // Added variable-length payload field
 }
 
+header vmon_cpu_t {
+    bit<32> src_ip;
+    bit<32> dst_ip;
+    bit<16> src_port;
+    bit<16> dst_port;
+    bit<8>  proto;
+}
+
 struct metadata {
     @field_list(0) // preserved on recirculate_preserving_field_list
     bit<9>    ingress_port;
@@ -98,6 +107,7 @@ struct metadata {
     bit<8>    tcp_opt_size;
     bit<2>    tunnel;
     bit<1>    setRecirculate;
+    bit<1>    cloneToVmon;
 }
 
 struct headers {
@@ -109,6 +119,7 @@ struct headers {
     tcp_t       tcp;
     tcp_opt_t   tcp_opt;
     udp_t       udp;
+    vmon_cpu_t  vmon_cpu;
 }
 
 /*************************************************************************
@@ -229,6 +240,11 @@ control MyIngress(inout headers hdr,
     action sendTunnel() {
         // Empty action to send the packet through a tunnel
         // The tunnel will be selected in the next stage
+    }
+
+    action clone_to_vmon() {
+        meta.cloneToVmon = 1;
+        clone_preserving_field_list(CloneType.I2E, 99, 0);
     }
 
     table ipv4Lpm{
@@ -385,6 +401,7 @@ control MyIngress(inout headers hdr,
         if(standard_metadata.instance_type == 0){
             meta.ingress_port = standard_metadata.ingress_port; // Save ingress port for after the recirculate
             tunnel_counter.count((bit<32>) standard_metadata.ingress_port); // Count new packet in
+            clone_to_vmon();
         }
 
         activateFirewall = 0;
@@ -476,8 +493,36 @@ control MyEgress(inout headers hdr,
         hdr.labels.pop_front(1);
     }
 
+    action prepare_vmon_packet() {
+        hdr.vmon_cpu.setValid();
+        hdr.vmon_cpu.src_ip   = hdr.ipv4.srcAddr;
+        hdr.vmon_cpu.dst_ip   = hdr.ipv4.dstAddr;
+
+        if(hdr.tcp.isValid()) {
+            hdr.vmon_cpu.src_port = hdr.tcp.srcPort;
+            hdr.vmon_cpu.dst_port = hdr.tcp.dstPort;
+            hdr.vmon_cpu.proto    = TYPE_TCP;
+        }
+        else if(hdr.udp.isValid()) {
+            hdr.vmon_cpu.src_port = hdr.udp.srcPort;
+            hdr.vmon_cpu.dst_port = hdr.udp.dstPort;
+            hdr.vmon_cpu.proto    = TYPE_UDP;
+        }
+        else {
+            hdr.vmon_cpu.src_port = 0;
+            hdr.vmon_cpu.dst_port = 0;
+            hdr.vmon_cpu.proto    = hdr.ipv4.protocol;
+        }
+
+        hdr.ethernet.etherType = 0x1235; // EtherType vMON
+        truncate(64); // control plane-friendly packet
+    }
+
     apply {
-        if(meta.setRecirculate == 1) {
+        if (standard_metadata.instance_type == 1 && meta.cloneToVmon == 1) {
+            prepare_vmon_packet();
+        }
+        if (meta.setRecirculate == 1) {
             recirculate_preserving_field_list(0);
         } else if(hdr.mslp.isValid() && hdr.labels[0].isValid()) {
             popLabel();  // Remove a sua label antes de enviar ao seguinte
@@ -523,6 +568,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
         packet.emit(hdr.tcp);
         packet.emit(hdr.tcp_opt);
         packet.emit(hdr.udp);
+        packet.emit(hdr.vmon_cpu);
     }
 }
 

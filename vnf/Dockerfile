@@ -19,9 +19,10 @@ RUN apt update && apt install -y --no-install-recommends \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install flask prometheus_client
+RUN pip3 install flask prometheus_client scapy
 
 COPY entrypoint.sh /entrypoint.sh
+COPY vmon.py /vmon.py
 
 RUN chmod +x /entrypoint.sh
 

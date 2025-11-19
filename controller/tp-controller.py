@@ -14,6 +14,9 @@ from scapy.all import Ether, Packet, BitField, raw
 import reading_utils as rd
 import writing_utils as wr
 
+import urllib.request
+import urllib.error
+
 # Import P4Runtime lib from utils dir
 # This approach is used to import P4Runtime library when it's located in a different directory.
 # Probably there's a better way of doing this.
@@ -28,6 +31,69 @@ from p4runtime_lib.switch import ShutdownAllSwitchConnections #, connections
 class CpuHeader(Packet):
     name = 'CpuPacket'
     fields_desc = [BitField('macAddr',0,48), BitField('ingressPort', 0, 16)]
+
+VMON_METRICS_URL = os.getenv("VMON_METRICS_URL", "http://10.0.250.2:5000/metrics")
+
+def _print_vmon_metrics(metrics):
+    """
+    Imprime um resumo compacto das métricas do vMon no terminal do controller.
+    """
+    generated_at = metrics.get("generated_at", "?")
+    flow_count = metrics.get("flow_count", 0)
+    flows = metrics.get("flows", [])
+
+    print("\n===== vMon metrics =====")
+    print(f"generated_at: {generated_at}")
+    print(f"flow_count  : {flow_count}")
+
+    # Mostrar até 5 fluxos como exemplo
+    max_show = min(5, len(flows))
+    for i in range(max_show):
+        f = flows[i]
+        proto = f.get("proto")
+        src_ip = f.get("src_ip")
+        dst_ip = f.get("dst_ip")
+        sport = f.get("src_port")
+        dport = f.get("dst_port")
+        packets = f.get("packets")
+        bps = f.get("bps")
+        rtt = f.get("syn_rtt_ms")
+
+        print(f"  [{i}] {proto} {src_ip}:{sport} -> {dst_ip}:{dport} "
+              f"pkts={packets} bps={int(bps)} "
+              f"rtt_ms={rtt if rtt is not None else '-'}")
+
+    print("========================\n")
+
+
+def vmon_metrics_poller(stop_event):
+    """
+    Thread que periodicamente faz GET ao endpoint /metrics do vMon
+    e imprime o resultado no terminal do controller.
+    """
+    print(f"[vMon] metrics poller started. URL = {VMON_METRICS_URL}")
+    consecutive_errors = 0
+
+    while not stop_event.is_set():
+        try:
+            with urllib.request.urlopen(VMON_METRICS_URL, timeout=1.0) as resp:
+                body = resp.read()
+                metrics = json.loads(body.decode('utf-8'))
+                _print_vmon_metrics(metrics)
+                consecutive_errors = 0
+        except urllib.error.URLError as e:
+            consecutive_errors += 1
+            if consecutive_errors <= 5:
+                print(f"[vMon] ERROR fetching metrics: {e}")
+        except Exception as e:
+            consecutive_errors += 1
+            if consecutive_errors <= 5:
+                print(f"[vMon] Unexpected error fetching metrics: {e}")
+
+        # Não bombardear o vMon: 5 segundos entre pedidos
+        sleep(5)
+
+    print("[vMon] metrics poller stopped.")
 
 
 ###############   LOAD JSONS   ###############
@@ -170,6 +236,15 @@ def write_clone_engines(connections, program_config, clone_config, clones, state
                 clones[sw_name]["thread"] = thread
 
                 thread.start()
+                
+            if "vmonSessionId" in cfg:
+                vmon_id = cfg["vmonSessionId"]
+                vmon_replicas = cfg["vmonReplicas"]
+
+                # Uses same write function as CPU, but without thread
+                wr.write_cpu_session(helper, sw, vmon_id, vmon_replicas)
+
+                print(f"VMON clone session installed on {sw_name}: session {vmon_id}")
             
     print("------ MC Groups and Clone Sessions done! ------\n")
                 
@@ -674,6 +749,14 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
 
         # Setup the tunnels and start the load balancing threads
         setup_tunnels(connections, program_config, tunnels_config, tunnels, state)
+
+        vmon_stop_event = threading.Event()
+        vmon_thread = threading.Thread(
+            target=vmon_metrics_poller,
+            args=(vmon_stop_event,),
+            daemon=True
+        )
+        vmon_thread.start()
 
         # Loop to handle user input for resetting switches and showing state
         while True:

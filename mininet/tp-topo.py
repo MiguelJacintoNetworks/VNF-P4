@@ -172,6 +172,16 @@ def main():
         }
     )
 
+    vmon = net.addDocker(
+        'vmon',
+        dimage='vnf',
+        dcmd='/entrypoint.sh',
+        docker_args={
+            'network_mode': 'none',
+            'privileged': True
+        }
+    )
+
     r1 = net.get('r1')
     r2 = net.get('r2')
     r3 = net.get('r3')
@@ -182,6 +192,13 @@ def main():
     h4 = net.get('h4')
     h5 = net.get('h5')
     h6 = net.get('h6')
+
+    net.addLink(
+        r4, vmon,
+        port1=4,
+        addr1=mac_base % (4,4),
+        addr2="aa:00:00:00:20:01"
+    )
 
     net.addLink(
         r4, vlb,
@@ -227,7 +244,18 @@ def main():
     
     h1.setDefaultRoute("dev eth0 via 10.0.1.254")
     h2.setDefaultRoute("dev eth0 via 10.0.1.254")
-    h3.setDefaultRoute("dev eth0 via 10.0.1.254")    
+    h3.setDefaultRoute("dev eth0 via 10.0.1.254")
+
+    vmon.cmd("ip link set dev eth0 down || true")
+    vmon.cmd("ip addr flush dev vmon-eth0 || true")
+    vmon.cmd("ip link set vmon-eth0 up")
+    vmon.cmd("ip addr add 10.0.250.2/24 dev vmon-eth0")
+    vmon.cmd("ip link set vmon-eth0 promisc on")
+
+    vmon.cmd("ethtool -K vmon-eth0 rx off tx off tso off gso off gro off || true")
+
+    r4.cmd("ip link set r4-eth4 up")
+    r4.cmd("ip addr add 10.0.250.1/24 dev r4-eth4")
 
     vlb.cmd("ip link set dev eth0 down || true")
 
@@ -288,6 +316,7 @@ def main():
     r4.cmd("ethtool -K r4-eth1 rx off tx off tso off gso off gro off || true")
     r4.cmd("ethtool -K r4-eth2 rx off tx off tso off gso off gro off || true")
     r4.cmd("ethtool -K r4-eth2 rx off tx off tso off gso off gro off || true")
+    r4.cmd("ethtool -K r4-eth4 rx off tx off tso off gso off gro off || true")
     
     r5.cmd("ethtool -K r5-eth1 rx off tx off tso off gso off gro off || true")
     r5.cmd("ethtool -K r5-eth2 rx off tx off tso off gso off gro off || true")
