@@ -51,4 +51,5 @@ h6 iperf -s -p 81 &
 h1 iperf -c vlb -p 81 -M 500 -i 1
 
 vlb ipvsadm -Ln --stats
+
 sudo fuser -k 9000/tcp
