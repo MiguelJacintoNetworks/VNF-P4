@@ -7,13 +7,6 @@
                 "nextHopMac": "aa:00:00:00:10:01"
             }
         },
-        "{\"hdr.ipv4.dstAddr\": [\"10.0.3.0\", 24]}": {
-            "action": "MyIngress.forward",
-            "params": {
-                "egressPort": 1,
-                "nextHopMac": "aa:00:00:00:10:01"
-            }
-        },
         "{\"hdr.ipv4.dstAddr\": [\"10.0.1.0\", 24]}": {
             "action": "MyIngress.sendTunnel",
             "params": {}

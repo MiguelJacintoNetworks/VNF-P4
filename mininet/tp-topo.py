@@ -10,12 +10,18 @@ from mininet.node import Host
 
 from p4_mininet import P4Host
 from p4runtime_switch import P4RuntimeSwitch
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import argparse
 import os
 import glob
+import threading
 from time import sleep
 
+wget_stop_event = threading.Event()
+iperf_stop_event = threading.Event()
+wget_thread = None
+iperf_thread = None
 
 # If you look at this parser, it can identify 4 arguments
 # --behavioral-exe, with the default value 'simple_switch'
@@ -123,15 +129,15 @@ class SingleSwitchTopo(Topo):
                     mac = mac_base % (0,3))
         h4 = self.addHost('h4',
                     cls = Host,
-                    ip = host_ip_base % (3,1),
+                    ip = "10.0.4.2/30",
                     mac = mac_base % (0,4))
         h5 = self.addHost('h5',
                     cls = Host,
-                    ip = host_ip_base % (3,2),
+                    ip = "10.0.5.2/30",
                     mac = mac_base % (0,5))
         h6 = self.addHost('h6',
                     cls = Host,
-                    ip = host_ip_base % (3,3),
+                    ip = "10.0.6.2/30",
                     mac = mac_base % (0,6))  
 
         # Add links
@@ -225,6 +231,8 @@ def main():
         addr2=mac_base % (0,6)
     )
 
+    disable_rp_filter_for_veth()
+
     # Here, the mininet will use the constructor (__init__()) of the P4Switch class, 
     # with the arguments passed to the SingleSwitchTopo class in order to create 
     # our software switch.
@@ -265,16 +273,16 @@ def main():
     vlb.cmd("ip route add default via 10.0.2.254 dev vlb-eth0")
 
     vlb.cmd("ip link set dev vlb-eth1 up")
-    vlb.cmd("ip addr add 10.0.3.254/24 dev vlb-eth1")
-    vlb.cmd("ip neigh add 10.0.3.1 lladdr aa:00:00:00:00:04 dev vlb-eth1")
+    vlb.cmd("ip addr add 10.0.4.1/30 dev vlb-eth1")
+    vlb.cmd("ip neigh add 10.0.4.2 lladdr aa:00:00:00:00:04 dev vlb-eth1")
 
     vlb.cmd("ip link set dev vlb-eth2 up")
-    vlb.cmd("ip addr add 10.0.3.254/24 dev vlb-eth2")
-    vlb.cmd("ip neigh add 10.0.3.2 lladdr aa:00:00:00:00:05 dev vlb-eth2")
+    vlb.cmd("ip addr add 10.0.5.1/30 dev vlb-eth2")
+    vlb.cmd("ip neigh add 10.0.5.2 lladdr aa:00:00:00:00:05 dev vlb-eth2")
 
     vlb.cmd("ip link set dev vlb-eth3 up")
-    vlb.cmd("ip addr add 10.0.3.254/24 dev vlb-eth3")
-    vlb.cmd("ip neigh add 10.0.3.3 lladdr aa:00:00:00:00:06 dev vlb-eth3")
+    vlb.cmd("ip addr add 10.0.6.1/30 dev vlb-eth3")
+    vlb.cmd("ip neigh add 10.0.6.2 lladdr aa:00:00:00:00:06 dev vlb-eth3")
 
     vlb.cmd("ethtool -K vlb-eth0 rx off tx off tso off gso off gro off || true")
     vlb.cmd("ethtool -K vlb-eth1 rx off tx off tso off gso off gro off || true")
@@ -282,22 +290,22 @@ def main():
     vlb.cmd("ethtool -K vlb-eth3 rx off tx off tso off gso off gro off || true")
 
     h4.cmd("ip addr flush dev h4-eth0")
-    h4.cmd("ip addr add 10.0.3.1/24 dev h4-eth0")
+    h4.cmd("ip addr add 10.0.4.2/30 dev h4-eth0")
     h4.cmd("ip link set h4-eth0 up")
-    h4.cmd("ip neigh add 10.0.3.254 lladdr aa:00:00:00:10:02 dev h4-eth0")
-    h4.cmd("ip route add default via 10.0.3.254 dev h4-eth0")
+    h4.cmd("ip neigh add 10.0.4.1 lladdr aa:00:00:00:10:02 dev h4-eth0")
+    h4.cmd("ip route add default via 10.0.4.1 dev h4-eth0")
 
     h5.cmd("ip addr flush dev h5-eth0")
-    h5.cmd("ip addr add 10.0.3.2/24 dev h5-eth0")
+    h5.cmd("ip addr add 10.0.5.2/30 dev h5-eth0")
     h5.cmd("ip link set h5-eth0 up")
-    h5.cmd("ip neigh add 10.0.3.254 lladdr aa:00:00:00:10:03 dev h5-eth0")
-    h5.cmd("ip route add default via 10.0.3.254 dev h5-eth0")
+    h5.cmd("ip neigh add 10.0.5.1 lladdr aa:00:00:00:10:03 dev h5-eth0")
+    h5.cmd("ip route add default via 10.0.5.1 dev h5-eth0")
 
     h6.cmd("ip addr flush dev h6-eth0")
-    h6.cmd("ip addr add 10.0.3.3/24 dev h6-eth0")
+    h6.cmd("ip addr add 10.0.6.2/30 dev h6-eth0")
     h6.cmd("ip link set h6-eth0 up")
-    h6.cmd("ip neigh add 10.0.3.254 lladdr aa:00:00:00:10:04 dev h6-eth0")
-    h6.cmd("ip route add default via 10.0.3.254 dev h6-eth0")
+    h6.cmd("ip neigh add 10.0.6.1 lladdr aa:00:00:00:10:04 dev h6-eth0")
+    h6.cmd("ip route add default via 10.0.6.1 dev h6-eth0")
 
     h4.cmd("ethtool -K h4-eth0 rx off tx off tso off gso off gro off || true")
     h5.cmd("ethtool -K h5-eth0 rx off tx off tso off gso off gro off || true")
@@ -338,15 +346,136 @@ def main():
 
     vlb.cmd("ipvsadm -C || true")
 
-    vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s lc")
+    vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s rr")
 
-    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.3.1:81 -m")
-    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.3.2:81 -m")
-    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.3.3:81 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.4.2:81 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.5.2:81 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.6.2:81 -m")
 
-    disable_rp_filter_for_veth()
+    vlb.cmd("ipvsadm -A -t 10.0.2.1:5001 -s rr")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.4.2:5001 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.5.2:5001 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.6.2:5001 -m")
 
-    print("Ready !")
+    print("[TRAFFIC] STARTING BACKGROUND IPERF3 TRAFFIC...")
+
+    h4.cmd("python3 -m http.server 81 >/dev/null 2>&1 &")
+    h5.cmd("python3 -m http.server 81 >/dev/null 2>&1 &")
+    h6.cmd("python3 -m http.server 81 >/dev/null 2>&1 &")
+
+    h4.cmd("pkill -9 iperf >/dev/null 2>&1 || true")
+    h5.cmd("pkill -9 iperf >/dev/null 2>&1 || true")
+    h6.cmd("pkill -9 iperf >/dev/null 2>&1 || true")
+
+    h4.cmd("iperf -s -p 5001 --daemon")
+    h5.cmd("iperf -s -p 5001 --daemon")
+    h6.cmd("iperf -s -p 5001 --daemon")
+
+    def wget_sequential_loop():
+        hosts = [("H1", h1), ("H2", h2), ("H3", h3)]
+        while not wget_stop_event.is_set():
+            for name, host in hosts:
+                if wget_stop_event.is_set():
+                    break
+                print(f"\n[WGET][{name}] HTTP GET http://10.0.2.1:81/")
+                out = host.cmd("wget -S -O /dev/null http://10.0.2.1:81/ 2>&1")
+                print(f"[WGET][{name}] RESPONSE:\n{out}")
+                print(f"[WGET][{name}] DONE\n" + "=" * 60)
+                sleep(1)
+
+        print("[WGET] LOOP STOPPED")
+
+    def iperf_sequential_loop():
+        hosts = [("H1", h1), ("H2", h2), ("H3", h3)]
+        while not iperf_stop_event.is_set():
+            for name, host in hosts:
+                if iperf_stop_event.is_set():
+                    break
+                print(f"\n[IPERF][{name}] TEST TO 10.0.2.1:81")
+                out = host.cmd("iperf -c 10.0.2.1 -p 5001 -M 500 -t 5 -i 1 2>&1")
+                print(f"[IPERF][{name}] RESULT:\n{out}")
+                print(f"[IPERF][{name}] DONE\n" + "=" * 60)
+                sleep(1)
+
+        print("[IPERF] LOOP STOPPED")
+
+    def start_wget_loop():
+        global wget_thread
+        if wget_thread is not None and wget_thread.is_alive():
+            print("[WGET] LOOP ALREADY RUNNING")
+            return
+        wget_stop_event.clear()
+        wget_thread = threading.Thread(target=wget_sequential_loop, daemon=True)
+        wget_thread.start()
+        print("[WGET] LOOP STARTED")
+
+    def stop_wget_loop():
+        if wget_thread is None:
+            print("[WGET] NO LOOP TO STOP")
+            return
+        wget_stop_event.set()
+        h1.cmd("pkill -9 wget || true")
+        h2.cmd("pkill -9 wget || true")
+        h3.cmd("pkill -9 wget || true")
+        print("[WGET] STOP SIGNAL SENT")
+
+    def start_iperf_loop():
+        global iperf_thread
+        if iperf_thread is not None and iperf_thread.is_alive():
+            print("[IPERF] LOOP ALREADY RUNNING")
+            return
+        iperf_stop_event.clear()
+        iperf_thread = threading.Thread(target=iperf_sequential_loop, daemon=True)
+        iperf_thread.start()
+        print("[IPERF] LOOP STARTED")
+
+    def stop_iperf_loop():
+        if iperf_thread is None:
+            print("[IPERF] NO LOOP TO STOP")
+            return
+        iperf_stop_event.set()
+        h1.cmd("pkill -9 iperf || true")
+        h2.cmd("pkill -9 iperf || true")
+        h3.cmd("pkill -9 iperf || true")
+        print("[IPERF] STOP SIGNAL SENT")
+
+    class TrafficRequestHandler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            if self.path == "/traffic/wget/start":
+                start_wget_loop()
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"WGET STARTED")
+            elif self.path == "/traffic/wget/stop":
+                stop_wget_loop()
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"WGET STOPPED")
+            elif self.path == "/traffic/iperf/start":
+                start_iperf_loop()
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"IPERF STARTED")
+            elif self.path == "/traffic/iperf/stop":
+                stop_iperf_loop()
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"IPERF STOPPED")
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def log_message(self, format, *args):
+            return
+
+    def start_control_server():
+        server = HTTPServer(("127.0.0.1", 9000), TrafficRequestHandler)
+        print("HTTP SERVER ON 127.0.0.1:9000")
+        server.serve_forever()
+
+    threading.Thread(target=start_control_server, daemon=True).start()
+
+    sleep(5)
 
     # Start the Mininet CLI, which allows interactive control of the network
     CLI( net )

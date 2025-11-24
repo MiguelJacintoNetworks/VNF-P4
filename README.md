@@ -44,3 +44,11 @@ h4 iperf3 -s -p 81 &
 h5 iperf3 -s -p 81 &
 h6 iperf3 -s -p 81 &
 h1 iperf3 -c vlb -p 81 -M 500
+
+h4 iperf -s -p 81 &
+h5 iperf -s -p 81 &
+h6 iperf -s -p 81 &
+h1 iperf -c vlb -p 81 -M 500 -i 1
+
+vlb ipvsadm -Ln --stats
+sudo fuser -k 9000/tcp

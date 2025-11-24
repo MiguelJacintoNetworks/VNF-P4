@@ -34,66 +34,59 @@ class CpuHeader(Packet):
 
 VMON_METRICS_URL = os.getenv("VMON_METRICS_URL", "http://10.0.250.2:5000/metrics")
 
-def _print_vmon_metrics(metrics):
+
+def handle_metrics():
     """
-    Imprime um resumo compacto das métricas do vMon no terminal do controller.
+    Fetch and display a full, detailed view of vMon metrics on demand.
+    This performs a one-shot HTTP GET to the vMon /metrics endpoint.
     """
-    generated_at = metrics.get("generated_at", "?")
-    flow_count = metrics.get("flow_count", 0)
+    try:
+        with urllib.request.urlopen(VMON_METRICS_URL, timeout=2.0) as resp:
+            body = resp.read()
+            metrics = json.loads(body.decode("utf-8"))
+    except urllib.error.URLError as e:
+        print(f"[METRICS] ERROR FETCHING VMON METRICS: {e}")
+        return
+    except Exception as e:
+        print(f"[METRICS] UNEXPECTED ERROR WHILE FETCHING VMON METRICS: {e}")
+        return
+
     flows = metrics.get("flows", [])
+    flow_count = metrics.get("flow_count", len(flows))
+    generated_at = metrics.get("generated_at", "-")
 
-    print("\n===== vMon metrics =====")
-    print(f"generated_at: {generated_at}")
-    print(f"flow_count  : {flow_count}")
+    print("\n========== VMON METRICS ==========")
+    print(f"GENERATED_AT : {generated_at}")
+    print(f"FLOW_COUNT   : {flow_count}")
+    print("----------------------------------")
 
-    # Mostrar até 5 fluxos como exemplo
-    max_show = min(5, len(flows))
-    for i in range(max_show):
-        f = flows[i]
-        proto = f.get("proto")
-        src_ip = f.get("src_ip")
-        dst_ip = f.get("dst_ip")
-        sport = f.get("src_port")
-        dport = f.get("dst_port")
-        packets = f.get("packets")
-        bps = f.get("bps")
-        rtt = f.get("syn_rtt_ms")
+    if not flows:
+        print("NO FLOWS REPORTED BY VMON.")
+        print("============ END ============\n")
+        return
 
-        print(f"  [{i}] {proto} {src_ip}:{sport} -> {dst_ip}:{dport} "
-              f"pkts={packets} bps={int(bps)} "
-              f"rtt_ms={rtt if rtt is not None else '-'}")
+    for idx, f in enumerate(flows):
+        proto      = f.get("proto", "-")
+        src_ip     = f.get("src_ip", "-")
+        dst_ip     = f.get("dst_ip", "-")
+        src_port   = f.get("src_port", "-")
+        dst_port   = f.get("dst_port", "-")
+        packets    = f.get("packets", 0)
+        bytes_     = f.get("bytes", 0)
+        bps        = f.get("bps", 0)
+        syn_rtt_ms = f.get("syn_rtt_ms", None)
 
-    print("========================\n")
+        print(f"[{idx}] {proto}  {src_ip}:{src_port} -> {dst_ip}:{dst_port}")
+        print(f"     PACKETS : {packets}")
+        print(f"     BYTES   : {bytes_}")
+        print(f"     BITRATE : {int(bps)} BPS")
+        if syn_rtt_ms is not None:
+            print(f"     SYN RTT : {syn_rtt_ms:.2f} MS")
+        else:
+            print(f"     SYN RTT : -")
+        print("----------------------------------")
 
-
-def vmon_metrics_poller(stop_event):
-    """
-    Thread que periodicamente faz GET ao endpoint /metrics do vMon
-    e imprime o resultado no terminal do controller.
-    """
-    print(f"[vMon] metrics poller started. URL = {VMON_METRICS_URL}")
-    consecutive_errors = 0
-
-    while not stop_event.is_set():
-        try:
-            with urllib.request.urlopen(VMON_METRICS_URL, timeout=1.0) as resp:
-                body = resp.read()
-                metrics = json.loads(body.decode('utf-8'))
-                _print_vmon_metrics(metrics)
-                consecutive_errors = 0
-        except urllib.error.URLError as e:
-            consecutive_errors += 1
-            if consecutive_errors <= 5:
-                print(f"[vMon] ERROR fetching metrics: {e}")
-        except Exception as e:
-            consecutive_errors += 1
-            if consecutive_errors <= 5:
-                print(f"[vMon] Unexpected error fetching metrics: {e}")
-
-        # Não bombardear o vMon: 5 segundos entre pedidos
-        sleep(5)
-
-    print("[vMon] metrics poller stopped.")
+    print("=========== END VMON ===========\n")
 
 
 ###############   LOAD JSONS   ###############
@@ -718,8 +711,35 @@ def graceful_shutdown(clones, tunnels):
     stop_clone_engine_threads(clones)
     stop_tunnel_monitor_threads(tunnels)
     print("Controller exited cleanly.")
-    
 
+def traffic_control(action):
+    """
+    Controla a geração de tráfego na topo via servidor HTTP local.
+
+    action: 'wget_on', 'wget_off', 'iperf_on', 'iperf_off'
+    """
+    path_map = {
+        "wget_on":  "/traffic/wget/start",
+        "wget_off": "/traffic/wget/stop",
+        "iperf_on": "/traffic/iperf/start",
+        "iperf_off": "/traffic/iperf/stop",
+    }
+
+    if action not in path_map:
+        print(f"[TRAFFIC] Unknown action: {action}")
+        return
+
+    url = f"http://127.0.0.1:9000{path_map[action]}"
+
+    try:
+        # Usamos POST porque o servidor na topo trata apenas POST
+        req = urllib.request.Request(url, data=b"", method="POST")
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
+            body = resp.read().decode("utf-8", errors="ignore")
+            print(f"[TRAFFIC] {body}")
+    except Exception as e:
+        print(f"[TRAFFIC] ERROR contacting traffic controller: {e}")
+        
     
 ###############   MAIN EXECUTION   ###############
 
@@ -750,37 +770,123 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
         # Setup the tunnels and start the load balancing threads
         setup_tunnels(connections, program_config, tunnels_config, tunnels, state)
 
-        vmon_stop_event = threading.Event()
-        vmon_thread = threading.Thread(
-            target=vmon_metrics_poller,
-            args=(vmon_stop_event,),
-            daemon=True
-        )
-        vmon_thread.start()
-
         # Loop to handle user input for resetting switches and showing state
         while True:
-            user_input = input("\n>>> \n").strip()
-            parts = user_input.split()
-            cmd = parts[0].lower()
-            
-            if cmd == "reset" and len(parts) == 2:
-                switches_config, program_config, tunnels_config, clone_config = handle_reset(
-                        parts[1], switches_config_path, switch_programs_path,
-                        tunnels_config_path, clone_config_path, switches_config,
-                        program_config, tunnels_config, clone_config,
-                        connections, clones, tunnels, state)
-
-            elif cmd == "show" and len(parts) == 2:
-                handle_show(parts[1], connections, program_config, state)
-                                    
-            elif cmd in ["exit", "quit", "q"]:
-                print("Exiting by input...")
+            try:
+                user_input = input("\nCONTROLLER> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\n[CLI] INTERRUPT RECEIVED. SHUTTING DOWN NOW...")
                 graceful_shutdown(clones, tunnels)
                 break
-            
-            else:
-                print(f"Unknown command: {user_input}")
+
+            # Ignore empty lines
+            if not user_input:
+                continue
+
+            parts = user_input.split()
+            cmd = parts[0].lower()
+            args = parts[1:]
+
+            # --------------------------------
+            # COMMAND: HELP
+            # --------------------------------
+            if cmd in ("help", "?"):
+                print("\nAVAILABLE COMMANDS:")
+                print("  RESET <TARGET>        - RESET ALL|TUNNELS|COUNTERS|<SWITCH_NAME>")
+                print("  SHOW <TARGET>         - SHOW STATE|<SWITCH_NAME>")
+                print("  METRICS               - SHOW FULL VMON METRICS SNAPSHOT")
+                print("  TRAFFIC WGET ON|OFF   - CONTROL SEQUENTIAL HTTP (WGET) TRAFFIC (H1→H2→H3)")
+                print("  TRAFFIC IPERF ON|OFF  - CONTROL SEQUENTIAL IPERF TRAFFIC (H1→H2→H3)")
+                print("  EXIT|QUIT|Q           - TERMINATE CONTROLLER")
+                print("")
+                continue
+
+            # --------------------------------
+            # COMMAND: RESET <TARGET>
+            # --------------------------------
+            if cmd == "reset":
+                if len(args) != 1:
+                    print("[CLI] INVALID SYNTAX FOR COMMAND 'RESET'.")
+                    print("USAGE: RESET <ALL|TUNNELS|COUNTERS|SWITCH_NAME>")
+                    continue
+
+                target = args[0]
+                switches_config, program_config, tunnels_config, clone_config = handle_reset(
+                    target,
+                    switches_config_path,
+                    switch_programs_path,
+                    tunnels_config_path,
+                    clone_config_path,
+                    switches_config,
+                    program_config,
+                    tunnels_config,
+                    clone_config,
+                    connections,
+                    clones,
+                    tunnels,
+                    state
+                )
+                continue
+
+            # --------------------------------
+            # COMMAND: SHOW <TARGET>
+            # --------------------------------
+            if cmd == "show":
+                if len(args) != 1:
+                    print("[CLI] INVALID SYNTAX FOR COMMAND 'SHOW'.")
+                    print("USAGE: SHOW <STATE|SWITCH_NAME>")
+                    continue
+
+                target = args[0]
+                handle_show(target, connections, program_config, state)
+                continue
+
+            # --------------------------------
+            # COMMAND: METRICS
+            # --------------------------------
+            if cmd == "metrics":
+                if len(args) != 0:
+                    print("[CLI] INVALID SYNTAX FOR COMMAND 'METRICS'.")
+                    print("USAGE: METRICS")
+                    continue
+
+                handle_metrics()
+                continue
+
+            # --------------------------------
+            # COMMAND: TRAFFIC <WGET|IPERF> <ON|OFF>
+            # --------------------------------
+            if cmd == "traffic":
+                if len(args) != 2:
+                    print("[CLI] INVALID SYNTAX FOR COMMAND 'TRAFFIC'.")
+                    print("USAGE: TRAFFIC <WGET|IPERF> <ON|OFF>")
+                    continue
+
+                kind = args[0].lower()
+                state_arg = args[1].lower()
+
+                if kind not in ("wget", "iperf") or state_arg not in ("on", "off"):
+                    print("[CLI] INVALID TRAFFIC ARGS.")
+                    print("USAGE: TRAFFIC <WGET|IPERF> <ON|OFF>")
+                    continue
+
+                action = f"{kind}_{'on' if state_arg == 'on' else 'off'}"
+                traffic_control(action)
+                continue
+
+            # --------------------------------
+            # COMMAND: EXIT / QUIT / Q
+            # --------------------------------
+            if cmd in ("exit", "quit", "q"):
+                print("[CLI] CONTROLLER EXIT REQUESTED BY USER. SHUTTING DOWN...")
+                graceful_shutdown(clones, tunnels)
+                break
+
+            # --------------------------------
+            # UNKNOWN COMMAND
+            # --------------------------------
+            print(f"[CLI] UNKNOWN COMMAND: '{user_input}'")
+            print("TYPE 'HELP' TO SEE AVAILABLE COMMANDS.")
 
     except KeyboardInterrupt:
         print("Controller interrupted by user.")
