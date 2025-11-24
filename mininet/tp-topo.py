@@ -391,7 +391,7 @@ def main():
             for name, host in hosts:
                 if iperf_stop_event.is_set():
                     break
-                print(f"\n[IPERF][{name}] TEST TO 10.0.2.1:81")
+                print(f"\n[IPERF][{name}] TEST TO 10.0.2.1:5001")
                 out = host.cmd("iperf -c 10.0.2.1 -p 5001 -M 500 -t 5 -i 1 2>&1")
                 print(f"[IPERF][{name}] RESULT:\n{out}")
                 print(f"[IPERF][{name}] DONE\n" + "=" * 60)
@@ -434,9 +434,6 @@ def main():
             print("[IPERF] NO LOOP TO STOP")
             return
         iperf_stop_event.set()
-        h1.cmd("pkill -9 iperf || true")
-        h2.cmd("pkill -9 iperf || true")
-        h3.cmd("pkill -9 iperf || true")
         print("[IPERF] STOP SIGNAL SENT")
 
     class TrafficRequestHandler(BaseHTTPRequestHandler):

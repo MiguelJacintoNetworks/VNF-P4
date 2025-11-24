@@ -53,3 +53,8 @@ h1 iperf -c vlb -p 81 -M 500 -i 1
 vlb ipvsadm -Ln --stats
 
 sudo fuser -k 9000/tcp
+
+traffic wget on
+traffic iperf on
+traffic wget off
+traffic iperf off

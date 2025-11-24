@@ -17,6 +17,10 @@ const bit<8> TYPE_ICMP = 0x01;
 const bit<8> TYPE_TCP  = 0x06;
 const bit<8> TYPE_UDP  = 0x11;
 
+const ip4Addr_t VIP_ADDR     = 0x0A000201; // 10.0.2.1
+const bit<16>   VIP_HTTP_PRT = 81;
+const bit<16>   VIP_IPERF_PRT = 5001;
+
 #define BLOOM_FILTER_ENTRIES 4096
 #define BLOOM_FILTER_BIT_WIDTH 1
 
@@ -434,47 +438,79 @@ control MyIngress(inout headers hdr,
         } else {  // Deny traffic other than ipv4 or mslp
             drop(); 
         }
-
         // Firewall processing
         if(activateFirewall == 1) {  
             internalMacLookup.apply();  // Rewrite Macs to send the packet
             
             direction = 1; // Default direction: incoming (block)
-            if(checkDirection.apply().hit) {
-            }
+            if(checkDirection.apply().hit) {  // Set correct direction
 
-            if(hdr.udp.isValid()) {  // Monitor UDP traffic
-                if(direction == 0) {  // Outgoing packet
-                    compute_hashes(hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort);
-                    bloom_filter_1.write(reg_pos_1, 1);
-                    bloom_filter_2.write(reg_pos_2, 1);
-
-                } else {  // Incoming packet
-                    if(!allowedPortsUDP.apply().hit) {  // If it's not directed to an allowed port
-
-                        compute_hashes(hdr.ipv4.dstAddr, hdr.ipv4.srcAddr, hdr.udp.dstPort, hdr.udp.srcPort);
-                        bloom_filter_1.read(reg_val_1, reg_pos_1);
-                        bloom_filter_2.read(reg_val_2, reg_pos_2);
-                    }
-                }
-            } 
-            else if(hdr.tcp.isValid()) {  // Monitor TCP traffic
-                if(direction == 0) {  // Outgoing packet
-                    if(hdr.tcp.syn == 1) { // If it's a syn packet, it's a new flow
-                        compute_hashes(hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort);
+                if(hdr.udp.isValid()) {  // Monitor UDP traffic
+                    if(direction == 0) {  // Outgoing packet
+                        compute_hashes(hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort);
                         bloom_filter_1.write(reg_pos_1, 1);
                         bloom_filter_2.write(reg_pos_2, 1);
-                    }
 
-                } else {  // Incoming packet
-                    if(!allowedPortsTCP.apply().hit) {  // If it's not directed to an allowed port
-                            
-                        // Read the registers
-                        compute_hashes(hdr.ipv4.dstAddr, hdr.ipv4.srcAddr, hdr.tcp.dstPort, hdr.tcp.srcPort);
-                        bloom_filter_1.read(reg_val_1, reg_pos_1);
-                        bloom_filter_2.read(reg_val_2, reg_pos_2);
+                    } else {  // Incoming packet
+                        if(!allowedPortsUDP.apply().hit) {  // If it's not directed to an allowed port
+
+                            compute_hashes(hdr.ipv4.dstAddr, hdr.ipv4.srcAddr, hdr.udp.dstPort, hdr.udp.srcPort);
+                            bloom_filter_1.read(reg_val_1, reg_pos_1);
+                            bloom_filter_2.read(reg_val_2, reg_pos_2);
+
+                            if(reg_val_1 != 1 || reg_val_2 != 1) {
+                                drop();  // If it's missing in some register, deny the access
+                            }
+                        }
                     }
-                } 
+                } else if(hdr.tcp.isValid()) {  // Monitor TCP traffic
+
+                    if(direction == 0) {  // Outgoing packet (servers → fora)
+                        // Mantém exatamente a lógica original: registar fluxos no SYN
+                        if (hdr.tcp.syn == 1) { // If it's a syn packet, it's a new flow
+                            compute_hashes(
+                                hdr.ipv4.srcAddr, hdr.ipv4.dstAddr,
+                                hdr.tcp.srcPort, hdr.tcp.dstPort
+                            );
+                            bloom_filter_1.write(reg_pos_1, 1);
+                            bloom_filter_2.write(reg_pos_2, 1);
+                        }
+
+                    } else {  // Incoming packet (clientes → servers)
+
+                        // *** EXCEÇÃO: permitir sempre VIP:81 e VIP:5001 ***
+                        if (hdr.ipv4.dstAddr == VIP_ADDR &&
+                        (hdr.tcp.dstPort == VIP_HTTP_PRT ||
+                            hdr.tcp.dstPort == VIP_IPERF_PRT)) {
+                            // wget (81) e iperf (5001) → permitidos SEM verificações
+                            // não chamamos allowedPortsTCP nem bloom_filter, não há drop aqui
+
+                        } else {
+                            // Resto do tráfego mantém a lógica ORIGINAL com allowedPorts + bloom filter
+                            if (!allowedPortsTCP.apply().hit) {  // If it's not directed to an allowed port
+
+                                // Read the registers
+                                compute_hashes(
+                                    hdr.ipv4.dstAddr, hdr.ipv4.srcAddr,
+                                    hdr.tcp.dstPort, hdr.tcp.srcPort
+                                );
+                                bloom_filter_1.read(reg_val_1, reg_pos_1);
+                                bloom_filter_2.read(reg_val_2, reg_pos_2);
+
+                                // If it's missing in some register, deny the access
+                                if (reg_val_1 != 1 || reg_val_2 != 1) {
+                                    drop();
+                                }
+                            }
+                        }
+                    }
+                } else if(hdr.icmp.isValid()) {  // Monitor ICMP traffic
+
+                    // Incoming ping request packet
+                    if(direction == 1 && hdr.icmp.typ == 8) {
+                        drop();
+                    }
+                }
             }
         }
     }

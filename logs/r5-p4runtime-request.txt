@@ -1,15 +1,15 @@
 
-[2025-11-24 00:40:04.369] /p4.v1.P4Runtime/GetForwardingPipelineConfig
+[2025-11-24 20:57:36.792] /p4.v1.P4Runtime/GetForwardingPipelineConfig
 ---
 device_id: 6
 ---
 
-[2025-11-24 00:40:04.370] /p4.v1.P4Runtime/SetForwardingPipelineConfig
+[2025-11-24 20:57:36.794] /p4.v1.P4Runtime/SetForwardingPipelineConfig
 ---
 Message too long (24229 bytes)! Skipping log...
 ---
 
-[2025-11-24 00:40:04.393] /p4.v1.P4Runtime/Read
+[2025-11-24 20:57:36.851] /p4.v1.P4Runtime/Read
 ---
 device_id: 6
 entities {
@@ -20,7 +20,7 @@ entities {
 }
 ---
 
-[2025-11-24 00:40:04.394] /p4.v1.P4Runtime/Read
+[2025-11-24 20:57:36.852] /p4.v1.P4Runtime/Read
 ---
 device_id: 6
 entities {
@@ -31,12 +31,12 @@ entities {
 }
 ---
 
-[2025-11-24 00:40:04.402] /p4.v1.P4Runtime/GetForwardingPipelineConfig
+[2025-11-24 20:57:36.884] /p4.v1.P4Runtime/GetForwardingPipelineConfig
 ---
 device_id: 6
 ---
 
-[2025-11-24 00:40:04.403] /p4.v1.P4Runtime/Read
+[2025-11-24 20:57:36.886] /p4.v1.P4Runtime/Read
 ---
 device_id: 6
 entities {
@@ -45,7 +45,7 @@ entities {
 }
 ---
 
-[2025-11-24 00:40:04.427] /p4.v1.P4Runtime/Write
+[2025-11-24 20:57:36.943] /p4.v1.P4Runtime/Write
 ---
 device_id: 6
 election_id {
@@ -80,7 +80,7 @@ updates {
 }
 ---
 
-[2025-11-24 00:40:04.428] /p4.v1.P4Runtime/Write
+[2025-11-24 20:57:36.944] /p4.v1.P4Runtime/Write
 ---
 device_id: 6
 election_id {
@@ -115,7 +115,7 @@ updates {
 }
 ---
 
-[2025-11-24 00:40:04.429] /p4.v1.P4Runtime/Write
+[2025-11-24 20:57:36.945] /p4.v1.P4Runtime/Write
 ---
 device_id: 6
 election_id {
@@ -146,7 +146,7 @@ updates {
 }
 ---
 
-[2025-11-24 00:40:04.430] /p4.v1.P4Runtime/Write
+[2025-11-24 20:57:36.946] /p4.v1.P4Runtime/Write
 ---
 device_id: 6
 election_id {
