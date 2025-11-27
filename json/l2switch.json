@@ -145,7 +145,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l2switch.p4",
-        "line" : 152,
+        "line" : 119,
         "column" : 8,
         "source_fragment" : "MyDeparser"
       },
@@ -190,7 +190,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 74,
+            "line" : 54,
             "column" : 8,
             "source_fragment" : "meta.ingress_port = standard_metadata.ingress_port"
           }
@@ -209,7 +209,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 75,
+            "line" : 55,
             "column" : 8,
             "source_fragment" : "clone_preserving_field_list(CloneType.I2E, 100, 0)"
           }
@@ -240,7 +240,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 89,
+            "line" : 66,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = egressPort"
           }
@@ -248,7 +248,7 @@
       ]
     },
     {
-      "name" : "l2switch106",
+      "name" : "l2switch80",
       "id" : 4,
       "runtime_data" : [],
       "primitives" : [
@@ -266,7 +266,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 106,
+            "line" : 80,
             "column" : 16,
             "source_fragment" : "standard_metadata.mcast_grp = 1"
           }
@@ -274,7 +274,7 @@
       ]
     },
     {
-      "name" : "l2switch109",
+      "name" : "l2switch83",
       "id" : 5,
       "runtime_data" : [],
       "primitives" : [
@@ -288,7 +288,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 109,
+            "line" : 83,
             "column" : 12,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -310,7 +310,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 122,
+            "line" : 95,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -318,7 +318,7 @@
       ]
     },
     {
-      "name" : "l2switch127",
+      "name" : "l2switch100",
       "id" : 7,
       "runtime_data" : [],
       "primitives" : [
@@ -332,7 +332,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 127,
+            "line" : 100,
             "column" : 12,
             "source_fragment" : "hdr.cpu.setValid()"
           }
@@ -351,7 +351,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 128,
+            "line" : 101,
             "column" : 12,
             "source_fragment" : "hdr.cpu.srcAddr = hdr.eth.srcAddr"
           }
@@ -383,9 +383,9 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 129,
+            "line" : 102,
             "column" : 12,
-            "source_fragment" : "hdr.cpu.ingress_port = (bit<16>)meta.ingress_port"
+            "source_fragment" : "hdr.cpu.ingress_port = (bit<16>) meta.ingress_port"
           }
         },
         {
@@ -417,9 +417,9 @@
           ],
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 132,
+            "line" : 104,
             "column" : 12,
-            "source_fragment" : "truncate((bit<32>)22)"
+            "source_fragment" : "truncate((bit<32>) 22)"
           }
         }
       ]
@@ -431,7 +431,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l2switch.p4",
-        "line" : 68,
+        "line" : 49,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
@@ -442,7 +442,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 78,
+            "line" : 58,
             "column" : 10,
             "source_fragment" : "sMacLookup"
           },
@@ -479,7 +479,7 @@
           "id" : 1,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 92,
+            "line" : 69,
             "column" : 10,
             "source_fragment" : "dMacLookup"
           },
@@ -502,7 +502,7 @@
           "base_default_next" : null,
           "next_tables" : {
             "__HIT__" : null,
-            "__MISS__" : "tbl_l2switch106"
+            "__MISS__" : "tbl_l2switch80"
           },
           "default_entry" : {
             "action_id" : 1,
@@ -512,11 +512,11 @@
           }
         },
         {
-          "name" : "tbl_l2switch106",
+          "name" : "tbl_l2switch80",
           "id" : 2,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 106,
+            "line" : 80,
             "column" : 44,
             "source_fragment" : "="
           },
@@ -528,10 +528,10 @@
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [4],
-          "actions" : ["l2switch106"],
+          "actions" : ["l2switch80"],
           "base_default_next" : null,
           "next_tables" : {
-            "l2switch106" : null
+            "l2switch80" : null
           },
           "default_entry" : {
             "action_id" : 4,
@@ -541,11 +541,11 @@
           }
         },
         {
-          "name" : "tbl_l2switch109",
+          "name" : "tbl_l2switch83",
           "id" : 3,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 109,
+            "line" : 83,
             "column" : 12,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           },
@@ -557,10 +557,10 @@
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [5],
-          "actions" : ["l2switch109"],
+          "actions" : ["l2switch83"],
           "base_default_next" : null,
           "next_tables" : {
-            "l2switch109" : null
+            "l2switch83" : null
           },
           "default_entry" : {
             "action_id" : 5,
@@ -577,8 +577,8 @@
           "id" : 0,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 103,
-            "column" : 11,
+            "line" : 77,
+            "column" : 12,
             "source_fragment" : "hdr.eth.isValid()"
           },
           "expression" : {
@@ -593,7 +593,7 @@
             }
           },
           "true_next" : "MyIngress.sMacLookup",
-          "false_next" : "tbl_l2switch109"
+          "false_next" : "tbl_l2switch83"
         }
       ]
     },
@@ -602,18 +602,18 @@
       "id" : 1,
       "source_info" : {
         "filename" : "p4/l2switch.p4",
-        "line" : 118,
+        "line" : 90,
         "column" : 8,
         "source_fragment" : "MyEgress"
       },
       "init_table" : "node_9",
       "tables" : [
         {
-          "name" : "tbl_l2switch127",
+          "name" : "tbl_l2switch100",
           "id" : 4,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 127,
+            "line" : 100,
             "column" : 12,
             "source_fragment" : "hdr.cpu.setValid(); ..."
           },
@@ -625,10 +625,10 @@
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [7],
-          "actions" : ["l2switch127"],
+          "actions" : ["l2switch100"],
           "base_default_next" : "node_11",
           "next_tables" : {
-            "l2switch127" : "node_11"
+            "l2switch100" : "node_11"
           },
           "default_entry" : {
             "action_id" : 7,
@@ -642,8 +642,8 @@
           "id" : 5,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 136,
-            "column" : 12,
+            "line" : 106,
+            "column" : 77,
             "source_fragment" : "drop()"
           },
           "key" : [],
@@ -674,8 +674,8 @@
           "id" : 1,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 126,
-            "column" : 11,
+            "line" : 99,
+            "column" : 12,
             "source_fragment" : "standard_metadata.instance_type == 1"
           },
           "expression" : {
@@ -692,7 +692,7 @@
               }
             }
           },
-          "true_next" : "tbl_l2switch127",
+          "true_next" : "tbl_l2switch100",
           "false_next" : "node_11"
         },
         {
@@ -700,7 +700,7 @@
           "id" : 2,
           "source_info" : {
             "filename" : "p4/l2switch.p4",
-            "line" : 135,
+            "line" : 106,
             "column" : 12,
             "source_fragment" : "standard_metadata.egress_port == standard_metadata.ingress_port"
           },

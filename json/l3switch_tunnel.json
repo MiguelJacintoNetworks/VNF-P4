@@ -240,7 +240,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l3switch_tunnel.p4",
-        "line" : 167,
+        "line" : 152,
         "column" : 8,
         "source_fragment" : "MyDeparser"
       },
@@ -269,7 +269,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 91,
+            "line" : 79,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -291,7 +291,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 91,
+            "line" : 79,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -313,7 +313,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 91,
+            "line" : 79,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -348,7 +348,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 95,
+            "line" : 83,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = egressPort"
           }
@@ -367,7 +367,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 96,
+            "line" : 84,
             "column" : 8,
             "source_fragment" : "meta.nextHopMac = nextHopMac"
           }
@@ -398,7 +398,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 110,
+            "line" : 100,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.srcAddr = srcMac"
           }
@@ -417,7 +417,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 111,
+            "line" : 101,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.dstAddr = meta.nextHopMac"
           }
@@ -425,7 +425,7 @@
       ]
     },
     {
-      "name" : "l3switch_tunnel100",
+      "name" : "l3switch_tunnel89",
       "id" : 5,
       "runtime_data" : [],
       "primitives" : [
@@ -443,8 +443,8 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 100,
-            "column" : 15,
+            "line" : 89,
+            "column" : 12,
             "source_fragment" : "hdr.labels[0].label"
           }
         }
@@ -469,7 +469,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 145,
+            "line" : 133,
             "column" : 8,
             "source_fragment" : "hdr.labels.pop_front(1)"
           }
@@ -483,19 +483,19 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l3switch_tunnel.p4",
-        "line" : 86,
+        "line" : 75,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
       "init_table" : "node_2",
       "tables" : [
         {
-          "name" : "tbl_l3switch_tunnel100",
+          "name" : "tbl_l3switch_tunnel89",
           "id" : 0,
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 100,
-            "column" : 15,
+            "line" : 89,
+            "column" : 12,
             "source_fragment" : "hdr.labels[0].label"
           },
           "key" : [],
@@ -506,10 +506,10 @@
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [5],
-          "actions" : ["l3switch_tunnel100"],
+          "actions" : ["l3switch_tunnel89"],
           "base_default_next" : "MyIngress.labelLookup",
           "next_tables" : {
-            "l3switch_tunnel100" : "MyIngress.labelLookup"
+            "l3switch_tunnel89" : "MyIngress.labelLookup"
           },
           "default_entry" : {
             "action_id" : 5,
@@ -523,7 +523,7 @@
           "id" : 1,
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 99,
+            "line" : 87,
             "column" : 10,
             "source_fragment" : "labelLookup"
           },
@@ -560,7 +560,7 @@
           "id" : 2,
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 114,
+            "line" : 104,
             "column" : 10,
             "source_fragment" : "internalMacLookup"
           },
@@ -597,7 +597,7 @@
           "id" : 3,
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 130,
+            "line" : 122,
             "column" : 12,
             "source_fragment" : "drop()"
           },
@@ -629,8 +629,8 @@
           "id" : 0,
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 125,
-            "column" : 11,
+            "line" : 117,
+            "column" : 12,
             "source_fragment" : "hdr.mslp.isValid() && hdr.labels[0].isValid()"
           },
           "expression" : {
@@ -661,7 +661,7 @@
               }
             }
           },
-          "true_next" : "tbl_l3switch_tunnel100",
+          "true_next" : "tbl_l3switch_tunnel89",
           "false_next" : "tbl_drop"
         }
       ]
@@ -671,7 +671,7 @@
       "id" : 1,
       "source_info" : {
         "filename" : "p4/l3switch_tunnel.p4",
-        "line" : 139,
+        "line" : 129,
         "column" : 8,
         "source_fragment" : "MyEgress"
       },
@@ -682,7 +682,7 @@
           "id" : 4,
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 150,
+            "line" : 138,
             "column" : 12,
             "source_fragment" : "popLabel()"
           },
@@ -714,8 +714,8 @@
           "id" : 1,
           "source_info" : {
             "filename" : "p4/l3switch_tunnel.p4",
-            "line" : 149,
-            "column" : 11,
+            "line" : 137,
+            "column" : 12,
             "source_fragment" : "hdr.mslp.isValid() && hdr.labels[0].isValid()"
           },
           "expression" : {

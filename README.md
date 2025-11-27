@@ -29,8 +29,8 @@ sudo docker build -t vnf .
 # MININET:
 
 # RUN:
-sudo PYTHONPATH=$PYTHONPATH:/home/netsim/containernet python3 tp-topo.py
-sudo python3 mininet/tp-topo.py
+sudo PYTHONPATH=$PYTHONPATH:/home/netsim/containernet python3 topology.py
+sudo python3 mininet/topology.py
 
 # Parar Tudo:
 sudo mn -c
@@ -58,3 +58,10 @@ traffic wget on
 traffic iperf on
 traffic wget off
 traffic iperf off
+
+sudo docker cp mn.vlb:/vlb-eth0.pcap /home/netsim/Documents/P4/helpers
+sudo docker cp mn.vlb:/vlb-eth1.pcap /home/netsim/Documents/P4/helpers
+sudo docker cp mn.vlb:/vlb-eth2.pcap /home/netsim/Documents/P4/helpers
+sudo docker cp mn.vlb:/vlb-eth3.pcap /home/netsim/Documents/P4/helpers
+
+docker exec mn.vlb pkill -2 tcpdump

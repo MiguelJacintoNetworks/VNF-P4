@@ -10,45 +10,47 @@ from pprint import pprint
 import grpc
 from scapy.all import Ether, Packet, BitField, raw
 
-# import our utils functions
 import reading_utils as rd
 import writing_utils as wr
 
 import urllib.request
 import urllib.error
 
-# Import P4Runtime lib from utils dir
-# This approach is used to import P4Runtime library when it's located in a different directory.
-# Probably there's a better way of doing this.
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),'../utils/'))
-
-# Import the necessary P4Runtime libraries
 import p4runtime_lib.bmv2
 import p4runtime_lib.helper
-from p4runtime_lib.switch import ShutdownAllSwitchConnections #, connections
-
-# Define a custom CPU header that encapsules additional information sent by the data plane
-class CpuHeader(Packet):
-    name = 'CpuPacket'
-    fields_desc = [BitField('macAddr',0,48), BitField('ingressPort', 0, 16)]
+from p4runtime_lib.switch import ShutdownAllSwitchConnections
 
 VMON_METRICS_URL = os.getenv("VMON_METRICS_URL", "http://10.0.250.2:5000/metrics")
 
+metrics_thread = None
+metrics_stop_event = None
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "../utils/",
+    )
+)
+
+class CpuHeader(Packet):
+    name = "CpuPacket"
+    fields_desc = [
+        BitField("macAddr", 0, 48),
+        BitField("ingressPort", 0, 16),
+    ]
+
+# VMON AUXILIAR METHOD
 
 def handle_metrics():
-    """
-    Fetch and display a full, detailed view of vMon metrics on demand.
-    This performs a one-shot HTTP GET to the vMon /metrics endpoint.
-    """
     try:
-        with urllib.request.urlopen(VMON_METRICS_URL, timeout=2.0) as resp:
+        with urllib.request.urlopen(VMON_METRICS_URL, timeout = 2.0) as resp:
             body = resp.read()
             metrics = json.loads(body.decode("utf-8"))
     except urllib.error.URLError as e:
-        print(f"[METRICS] ERROR FETCHING VMON METRICS: {e}")
+        print(f"METRICS ERROR FETCHING VMON METRICS: {e}")
         return
     except Exception as e:
-        print(f"[METRICS] UNEXPECTED ERROR WHILE FETCHING VMON METRICS: {e}")
+        print(f"METRICS UNEXPECTED ERROR WHILE FETCHING VMON METRICS: {e}")
         return
 
     flows = metrics.get("flows", [])
@@ -66,32 +68,62 @@ def handle_metrics():
         return
 
     for idx, f in enumerate(flows):
-        proto      = f.get("proto", "-")
-        src_ip     = f.get("src_ip", "-")
-        dst_ip     = f.get("dst_ip", "-")
-        src_port   = f.get("src_port", "-")
-        dst_port   = f.get("dst_port", "-")
-        packets    = f.get("packets", 0)
-        bytes_     = f.get("bytes", 0)
-        bps        = f.get("bps", 0)
+        proto = f.get("proto", "-")
+        src_ip = f.get("src_ip", "-")
+        dst_ip = f.get("dst_ip", "-")
+        src_port = f.get("src_port", "-")
+        dst_port = f.get("dst_port", "-")
+        packets = f.get("packets", 0)
+        bytes_ = f.get("bytes", 0)
+        bps = f.get("bps", 0)
         syn_rtt_ms = f.get("syn_rtt_ms", None)
 
         print(f"[{idx}] {proto}  {src_ip}:{src_port} -> {dst_ip}:{dst_port}")
         print(f"     PACKETS : {packets}")
         print(f"     BYTES   : {bytes_}")
         print(f"     BITRATE : {int(bps)} BPS")
+
         if syn_rtt_ms is not None:
             print(f"     SYN RTT : {syn_rtt_ms:.2f} MS")
         else:
-            print(f"     SYN RTT : -")
+            print("     SYN RTT : -")
+
         print("----------------------------------")
 
     print("=========== END VMON ===========\n")
 
+def poll_vmon_metrics(stop_event, interval=1.0):
+    while not stop_event.is_set():
+        try:
+            with urllib.request.urlopen(VMON_METRICS_URL, timeout=1.5) as resp:
+                body = resp.read()
+                metrics = json.loads(body.decode("utf-8"))
+        except urllib.error.URLError as e:
+            print(f"[VMON POLL] ERROR FETCHING METRICS: {e}")
+            sleep(interval)
+            continue
+        except Exception as e:
+            print(f"[VMON POLL] UNEXPECTED ERROR WHILE FETCHING METRICS: {e}")
+            sleep(interval)
+            continue
 
-###############   LOAD JSONS   ###############
-    
-# Function to load the configuration files for switches, programs, tunnels, and clones
+        flows = metrics.get("flows", [])
+
+        for idx, f in enumerate(flows):
+            proto = str(f.get("proto", "")).upper()
+            if proto == "UDP":
+                src_ip = f.get("src_ip", "-")
+                dst_ip = f.get("dst_ip", "-")
+                src_port = f.get("src_port", "-")
+                dst_port = f.get("dst_port", "-")
+
+                print(
+                    f"[VMON] PACKET SUSPICIOUS? UDP FLOW {idx}: "
+                    f"{src_ip}:{src_port} -> {dst_ip}:{dst_port}"
+                )
+
+        sleep(interval)
+
 def load_config_files(switches_config_path, switch_programs_path, tunnels_config_path, clone_config_path):
     switches_config = json.load(open(switches_config_path))
     program_config = load_program_config(switch_programs_path)
@@ -99,215 +131,206 @@ def load_config_files(switches_config_path, switch_programs_path, tunnels_config
     clone_config = json.load(open(clone_config_path))
     return switches_config, program_config, tunnels_config, clone_config
 
-# Function to load the P4 program configuration from a JSON file
-def load_program_config(switch_programs_path):    
+def load_program_config(switch_programs_path):
     config_data = json.load(open(switch_programs_path))
     program_config = {}
-    
+
     for sw_name, entry in config_data.items():
-        helper_path = entry['p4info_path']
-        json_path = entry['json_path']
-        default_actions_path = entry['default_actions_path']
-        rules_path = entry['rules_path']
+        helper_path = entry["p4info_path"]
+        json_path = entry["json_path"]
+        default_actions_path = entry["default_actions_path"]
+        rules_path = entry["rules_path"]
 
         helper = p4runtime_lib.helper.P4InfoHelper(helper_path)
+
         program_config[sw_name] = {
-            "helper": helper, 
+            "helper": helper,
             "json": json_path,
             "default_actions": default_actions_path,
-            "rules": rules_path
+            "rules": rules_path,
         }
-    
+
     return program_config
 
-
-###############   SWITCHES FUNCTIONS   ###############
-
-# Function to perform the initial setup of the switches
-# including installing P4 programs, writing clone engines, default actions, and static rules
-def setup_switches(connections, program_config, clone_config, clones, state, reset=False):
-    
+def setup_switches(connections, program_config, clone_config, clones, state, reset = False):
     install_p4_programs(connections, program_config, reset)
     write_clone_engines(connections, program_config, clone_config, clones, state)
     write_default_actions(connections, program_config, state)
     read_tables_rules(connections, program_config, state)
     write_static_rules(connections, program_config, state)
 
-# Function to create all P4Runtime connections to all the switches
-# with gRPC and proto dump files for logging
 def create_connections_to_switches(switches_config, connections, state):
-    print("------ Connecting to the devices... ------")
+    print("------ CONNECTING TO DEVICES ------")
 
     connections.clear()
+
     for switch in switches_config:
         name = switch["name"]
+
         connections[name] = p4runtime_lib.bmv2.Bmv2SwitchConnection(
-            name=name,
-            address=switch["address"],
-            device_id=switch["device_id"],
-            proto_dump_file=switch["proto_dump_file"]
+            name = name,
+            address = switch["address"],
+            device_id = switch["device_id"],
+            proto_dump_file = switch["proto_dump_file"],
         )
+
         connections[name].MasterArbitrationUpdate()
         state[name] = {}
 
-    print("------ Connection successful! ------\n")
+    print("------ CONNECTION SUCCESSFUL ------\n")
     
-# Function to create a P4Runtime connection to one switch with gRPC and proto dump files for logging
 def create_connection_to_switch(target, switches_config, connections, state):
-    print("------ Connecting to the device... ------")
+    print("------ CONNECTING TO DEVICE ------")
 
     for switch in switches_config:
         if target == switch["name"]:
             connections[target] = p4runtime_lib.bmv2.Bmv2SwitchConnection(
-                name=target,
-                address=switch["address"],
-                device_id=switch["device_id"],
-                proto_dump_file=switch["proto_dump_file"]
+                name = target,
+                address = switch["address"],
+                device_id = switch["device_id"],
+                proto_dump_file = switch["proto_dump_file"],
             )
             connections[target].MasterArbitrationUpdate()
             state[target] = {}
             break
 
-    print("------ Connection successful! ------\n")
+    print("------ CONNECTION SUCCESSFUL ------\n")
 
-# Function to install the P4 programs on all switches
-def install_p4_programs(connections, program_config, reset=False):
-    print("------ Installing P4 Programs... ------")
+def install_p4_programs(connections, program_config, reset = False):
+    print("------ INSTALLING P4 PROGRAMS ------")
 
     for sw_name, sw_conn in connections.items():
-        expected_helper = program_config[sw_name]["helper"] 
+        expected_helper = program_config[sw_name]["helper"]
         json_path = program_config[sw_name]["json"]
 
         if reset:
-            print(f"{sw_name}: Reseting switch, installing P4 program...")
+            print(f"{sw_name}: RESETTING SWITCH, INSTALLING P4 PROGRAM...")
         else:
             installed_p4info = sw_conn.GetInstalledP4Info()
+
             if installed_p4info is None:
-                print(f"{sw_name}: No P4 program found, installing...")
+                print(f"{sw_name}: NO P4 PROGRAM FOUND, INSTALLING...")
             elif installed_p4info != expected_helper.p4info:
-                print(f"{sw_name}: Different P4 program found, re-installing...")
+                print(f"{sw_name}: DIFFERENT P4 PROGRAM FOUND, RE-INSTALLING...")
             else:
-                print(f"{sw_name}: Correct P4 program already installed, skipping.")
+                print(f"{sw_name}: CORRECT P4 PROGRAM ALREADY INSTALLED, SKIPPING.")
                 continue
 
-        sw_conn.SetForwardingPipelineConfig(p4info=expected_helper.p4info, bmv2_json_file_path=json_path)
-        print(f"{sw_name}: P4 program installed.")
+        sw_conn.SetForwardingPipelineConfig(
+            p4info = expected_helper.p4info,
+            bmv2_json_file_path = json_path,
+        )
 
-    print("------ P4 Programs Installation done! ------\n")
+        print(f"{sw_name}: P4 PROGRAM INSTALLED.")
+
+    print("------ P4 PROGRAM INSTALLATION DONE ------\n")
     
-# Function to write clone engines and their sessionId
 def write_clone_engines(connections, program_config, clone_config, clones, state):
-    print("------ Installing MC Groups and Clone Sessions... ------")
+    print("------ INSTALLING MC GROUPS AND CLONE SESSIONS ------")
 
     for sw_name, sw in connections.items():
-        if sw_name in clone_config.keys():
+        if sw_name in clone_config:
             cfg = clone_config[sw_name]
             helper = program_config[sw_name]["helper"]
 
             if "mcSessionId" in cfg:
-                mc_id  = cfg["mcSessionId"]
-                mc_replicas  = cfg["broadcastReplicas"]
+                mc_id = cfg["mcSessionId"]
+                mc_replicas = cfg["broadcastReplicas"]
                 wr.write_mc_group(helper, sw, mc_id, mc_replicas)
-            
+
             if "cpuSessionId" in cfg:
                 cpu_id = cfg["cpuSessionId"]
                 cpu_replicas = cfg["cpuReplicas"]
+
                 wr.write_cpu_session(helper, sw, cpu_id, cpu_replicas)
 
                 clones.setdefault(sw_name, {})
                 clones[sw_name]["id"] = cpu_id
 
-                # Start a thread for each switch with a cpu session id defined
-                # to listen for packet-in messages
                 stop_event = threading.Event()
                 clones[sw_name]["stop_event"] = stop_event
-                thread = threading.Thread(
-                    target=_listen_single_switch,
-                    args=(program_config[sw_name]["helper"], connections[sw_name], clones, state),
-                    daemon=True
-                )
-                clones[sw_name]["thread"] = thread
 
+                thread = threading.Thread(
+                    target = _listen_single_switch,
+                    args = (program_config[sw_name]["helper"], connections[sw_name], clones, state),
+                    daemon = True,
+                )
+
+                clones[sw_name]["thread"] = thread
                 thread.start()
-                
+
             if "vmonSessionId" in cfg:
                 vmon_id = cfg["vmonSessionId"]
                 vmon_replicas = cfg["vmonReplicas"]
-
-                # Uses same write function as CPU, but without thread
                 wr.write_cpu_session(helper, sw, vmon_id, vmon_replicas)
+                print(f"VMON CLONE SESSION INSTALLED ON {sw_name}: SESSION {vmon_id}")
 
-                print(f"VMON clone session installed on {sw_name}: session {vmon_id}")
-            
-    print("------ MC Groups and Clone Sessions done! ------\n")
+    print("------ MC GROUPS AND CLONE SESSIONS DONE ------\n")
                 
-# Function to listen for packet-in messages on a single switch            
 def _listen_single_switch(helper, sw, clones, state):
-    print(f"🔍 Listening for packet-ins on {sw.name}")
-    
+    print(f"LISTENING FOR PACKET-INS ON {sw.name}")
+
     try:
         for response in sw.stream_msg_resp:
             if clones[sw.name]["stop_event"].is_set():
                 break
-            
-            # Check if the response contains a packet-in message
+
             if response.packet:
-                #print("Received packet-in message:")
                 packet = Ether(raw(response.packet.payload))
+
                 if packet.type == 0x1234:
                     cpu_header = CpuHeader(bytes(packet.load))
-                    new_mac = cpu_header.macAddr   # e.g. "aa:bb:cc:dd:ee:ff"
+                    new_mac = cpu_header.macAddr
                     match_key = json.dumps({"hdr.eth.srcAddr": new_mac})
-                    #print("mac: %012X ingress_port: %s " % (new_mac, cpu_header.ingressPort))
 
                     sw_state = state.setdefault(sw.name, {}).setdefault("MyIngress.sMacLookup", {})
+
                     if match_key not in sw_state:
                         wr.write_mac_src_lookup(helper, sw, new_mac)
                         wr.write_mac_dst_lookup(helper, sw, new_mac, cpu_header.ingressPort)
+
                         sw_state[match_key] = {
                             "action": "NoAction",
                             "params": {}
                         }
-                    #else:
-                        #print("Rules already set")
             else:
-                print(f"[{sw.name}] Received non-packet-in message: {response}")
-        
+                print(f"{sw.name} RECEIVED NON PACKET-IN MESSAGE: {response}")
+
     except grpc.RpcError as e:
         if e.code() == grpc.StatusCode.CANCELLED:
-            # expected on shudown
-            print(f"[{sw.name}] packet-in stream cancelled, exiting listener.")
+            print(f"{sw.name} PACKET-IN STREAM CANCELLED, EXITING LISTENER")
         else:
-            print(f"[{sw.name}] unexpected gRPC error: {e}")
+            print(f"{sw.name} UNEXPECTED GRPC ERROR: {e}")
+
     finally:
-        print(f"[{sw.name}] listener thread terminating.")
+        print(f"{sw.name} LISTENER THREAD TERMINATING")
         
-# Function to write the default actions on all tables from all switches
 def write_default_actions(connections, program_config, state):
-    print("------ Writing Default Actions... ------")
-    
+    print("------ WRITING DEFAULT ACTIONS ------")
+
     for sw_name, sw in connections.items():
         helper = program_config[sw_name]["helper"]
         da_path = program_config[sw_name]["default_actions"]
+
         try:
             with open(da_path) as f:
                 actions = json.load(f)
         except FileNotFoundError:
-            print(f"No default actions config for {sw_name}, skipping...")
+            print(f"NO DEFAULT ACTIONS CONFIG FOR {sw_name}, SKIPPING")
             continue
 
         for table_name, action_name in actions.items():
             state[sw_name][table_name] = {}
             wr.write_default_table_action(helper, sw, table_name, action_name)
-    
-    print("------ Write Default Actions done! ------\n")
 
-# Function to read the current tables rules from the switches and store the known values
+    print("------ DEFAULT ACTIONS DONE ------\n")
+
 def read_tables_rules(connections, program_config, state):
-    print("------ Reading Tables Rules... ------")
+    print("------ READING TABLES RULES ------")
 
     for sw_name, sw in connections.items():
         helper = program_config[sw_name]["helper"]
+
         if not sw.HasP4ProgramInstalled():
             continue
 
@@ -317,6 +340,7 @@ def read_tables_rules(connections, program_config, state):
                 table = helper.get_tables_name(entry.table_id)
 
                 parser = rd.TABLE_PARSERS.get(table)
+
                 if parser:
                     try:
                         key, action, params = parser(entry, helper)
@@ -325,428 +349,461 @@ def read_tables_rules(connections, program_config, state):
                             "params": params
                         }
                     except Exception as e:
-                        print(f"⚠️ Error parsing table {table} on {sw_name}: {e}")
+                        print(f"ERROR PARSING TABLE {table} ON {sw_name}: {e}")
 
-    print("------ Read Tables Rules done! ------\n")
+    print("------ TABLE RULES READ DONE ------\n")
     
-# Function to write the static rules in all tables from all L3 switches
 def write_static_rules(connections, program_config, state):
-    print("------ Writing Static Rules... ------")
+    print("------ WRITING STATIC RULES ------")
 
-    # Load the desired rules from JSON files
     for sw_name, switch in connections.items():
         helper = program_config[sw_name]["helper"]
         rules_path = program_config[sw_name]["rules"]
+
         try:
             with open(rules_path) as f:
                 switch_rules = json.load(f)
         except FileNotFoundError:
-            print(f"No default actions config for {sw_name}, skipping...")
+            print(f"NO STATIC RULES CONFIG FOR {sw_name}, SKIPPING")
             continue
 
         for table, rules in switch_rules.items():
             for match, action_params in rules.items():
-                match_dict = json.loads(match)  # Assuming match is serialized as a JSON string
+                match_dict = json.loads(match)
                 action = action_params["action"]
                 params = action_params["params"]
+
                 wr.compare_and_write_rule(helper, switch, table, match_dict, action, params, state)
 
-    print("------ Write Static Rules done! ------\n")
+    print("------ STATIC RULES DONE ------\n")
 
-
-###############   TUNNELS FUNCTIONS   ###############
-
-# Function to setup tunnels and start the load balancing threads
 def setup_tunnels(connections, program_config, tunnels_config, tunnels, state):
-        
-    # Initialize the tunnel state and check if any tunnels are already active
     init_tunnel_states(connections, program_config, tunnels_config, tunnels, state)
-    # Thread to handle load balancing between the tunnels
     change_tunnel_rules(connections, program_config, tunnels_config, tunnels, state)
     
-# Function to detect which tunnel state is active or initialize the first tunnel state if none is found
 def init_tunnel_states(connections, program_config, tunnels_config, tunnels, state):
-    """
-    For each tunnel entry in tunnels_config.json:
-      - Try to detect its current installed state from `state[...]`
-      - If nothing is found, install state=0 and mirror into `state[...]`
-    """
-    cfgs  = tunnels_config["tunnels"]
+    cfgs = tunnels_config["tunnels"]
     table = tunnels_config["table"]
-    mf    = tunnels_config["match_field"]
-    tunnels.clear() # clear any previous state
+    mf = tunnels_config["match_field"]
+
+    tunnels.clear()
 
     for tcfg in cfgs:
         name = tcfg["name"]
-        sw_a  = tcfg["switchA"]
+        sw_a = tcfg["switchA"]
 
-        # ensure the nested state
         state.setdefault(sw_a, {}).setdefault(table, {})
 
-        # Try to detect current state by matching labels
         found = None
+
         for s in tcfg["states"]:
-            # build the expected mapping of JSON‐serialized match→hexlabel
-            exp = {
-              json.dumps({mf:int(k)}, sort_keys=True): v
-              for k,v in s["labelsA"].items()
+            expected = {
+                json.dumps({mf: int(k)}, sort_keys = True): v
+                for k, v in s["labelsA"].items()
             }
             actual = {
-              k: entry["params"]["labels"]
-              for k,entry in state[sw_a][table].items()
+                k: entry["params"]["labels"]
+                for k, entry in state[sw_a][table].items()
             }
-            if exp == actual:
+            if expected == actual:
                 found = s["id"]
                 break
-        
-        # if not found, install state 0
+
         if found is None:
             s0 = tcfg["states"][0]
-            print(f"[{name}] no existing config, installing initial state 0")
-            for side in ("A","B"):
-                sw   = connections[tcfg[f"switch{side}"]]
-                hlp  = program_config[tcfg[f"switch{side}"]]["helper"]
+            print(f"{name} NO EXISTING CONFIG, INSTALLING INITIAL STATE 0")
+
+            for side in ("A", "B"):
+                sw = connections[tcfg[f"switch{side}"]]
+                hlp = program_config[tcfg[f"switch{side}"]]["helper"]
                 labels = s0[f"labels{side}"]
 
                 for match_val, hexlbl in labels.items():
                     wr.write_table_entry(
-                        hlp, sw, table, {mf:int(match_val)},
+                        hlp,
+                        sw,
+                        table,
+                        {mf: int(match_val)},
                         "MyIngress.addMSLP",
                         {"labels": hexlbl},
-                        modify=False
+                        modify = False
                     )
-                    # mirror into state
-                    key = json.dumps({mf:int(match_val)}, sort_keys=True)
+
+                    key = json.dumps({mf: int(match_val)}, sort_keys = True)
                     state[sw.name][table][key] = {
-                        "action":"MyIngress.addMSLP",
-                        "params":{"labels":hexlbl}
+                        "action": "MyIngress.addMSLP",
+                        "params": {"labels": hexlbl}
                     }
+
             found = 0
+
         else:
-            print(f"[{name}] detected existing tunnel state {found}")
-        
+            print(f"{name} DETECTED EXISTING TUNNEL STATE {found}")
+
         tunnels.setdefault(name, {})
         tunnels[name]["state"] = found
 
-# Function to dynamicly change the tunnel selection rules according to traffic metrics
 def change_tunnel_rules(connections, program_config, tunnels_config, tunnels, state):
-    # Load our generic tunnel config
-    tcfgs     = tunnels_config["tunnels"]
-    interval  = tunnels_config["check_interval"]
+    tcfgs = tunnels_config["tunnels"]
+    interval = tunnels_config["check_interval"]
     threshold = tunnels_config["threshold"]
-    table     = tunnels_config["table"]
-    mf        = tunnels_config["match_field"]
+    table = tunnels_config["table"]
+    mf = tunnels_config["match_field"]
     cntr_name = tunnels_config["counter_name"]
 
-    # For each tunnel in the JSON, start a monitor thread
     for tcfg in tcfgs:
         name = tcfg["name"]
         stop_event = threading.Event()
+
         tunnels[name]["stop_event"] = stop_event
-        
+
         thread = threading.Thread(
-            target=_monitor_single_tunnel,
-            args=(
-                connections, program_config, tcfg, interval, 
-                threshold, table, mf, cntr_name, tunnels, state
+            target = _monitor_single_tunnel,
+            args = (
+                connections,
+                program_config,
+                tcfg,
+                interval,
+                threshold,
+                table,
+                mf,
+                cntr_name,
+                tunnels,
+                state,
             ),
-            daemon=True
+            daemon = True
         )
+
         tunnels[name]["thread"] = thread
         thread.start()
 
-def _monitor_single_tunnel(connections, program_config, tcfg, interval, threshold, 
-                           table, mf, cntr_name, tunnels, state):
-    name   = tcfg["name"]
-    idxs   = tcfg["counter_index"]
+def _monitor_single_tunnel(
+    connections,
+    program_config,
+    tcfg,
+    interval,
+    threshold,
+    table,
+    mf,
+    cntr_name,
+    tunnels,
+    state,
+):
+    name = tcfg["name"]
+    idxs = tcfg["counter_index"]
     states = tcfg["states"]
 
     sw_a = connections[tcfg["switchA"]]
     sw_b = connections[tcfg["switchB"]]
-    h_a  = program_config[tcfg["switchA"]]["helper"]
-    h_b  = program_config[tcfg["switchB"]]["helper"]
+    h_a = program_config[tcfg["switchA"]]["helper"]
+    h_b = program_config[tcfg["switchB"]]["helper"]
 
     curr_state = tunnels[name]["state"]
-    print(f"📡 Starting tunnel monitor '{name}' between {sw_a.name} ⇄ {sw_b.name}")
+    print(f"STARTING TUNNEL MONITOR {name} BETWEEN {sw_a.name} AND {sw_b.name}")
 
     while not tunnels[name]["stop_event"].is_set():
-        # read the counters from both switches
-        up_a   = rd.read_counter(h_a, sw_a, cntr_name, idxs["A_up"])
+        up_a = rd.read_counter(h_a, sw_a, cntr_name, idxs["A_up"])
         down_a = rd.read_counter(h_a, sw_a, cntr_name, idxs["A_down"])
-        up_b   = rd.read_counter(h_b, sw_b, cntr_name, idxs["B_up"])
+        up_b = rd.read_counter(h_b, sw_b, cntr_name, idxs["B_up"])
         down_b = rd.read_counter(h_b, sw_b, cntr_name, idxs["B_down"])
 
-        total_up   = up_a + up_b
+        total_up = up_a + up_b
         total_down = down_a + down_b
-        print(f"\n[{name}] up={total_up}, down={total_down}")
-        # Print individual counter values for both switches
-        print(f"[{sw_a.name}] up={up_a}, down={down_a}")
-        print(f"[{sw_b.name}] up={up_b}, down={down_b}")
+
+        print(f"\n[{name}] UP = {total_up}, DOWN = {total_down}")
+        print(f"[{sw_a.name}] UP = {up_a}, DOWN = {down_a}")
+        print(f"[{sw_b.name}] UP = {up_b}, DOWN = {down_b}")
 
         sleep_boost = 1
+
         if abs(total_up - total_down) > threshold:
-            # toggle state
             next_state = 1 - curr_state
             nxt = states[next_state]
 
-            # write out new label assignments for both switches
             for sw, helper, labels in [
                 (sw_a, h_a, nxt["labelsA"]),
-                (sw_b, h_b, nxt["labelsB"])
+                (sw_b, h_b, nxt["labelsB"]),
             ]:
                 for match_val, lbl in labels.items():
                     wr.write_table_entry(
-                        helper, sw, table,
+                        helper,
+                        sw,
+                        table,
                         {mf: int(match_val)},
                         "MyIngress.addMSLP",
                         {"labels": lbl},
-                        modify=True
+                        modify = True,
                     )
-                    key = json.dumps({mf:int(match_val)}, sort_keys=True)
+
+                    key = json.dumps({mf: int(match_val)}, sort_keys = True)
+
                     state[sw.name][table][key] = {
-                        "action":"MyIngress.addMSLP",
-                        "params":{"labels":lbl}
+                        "action": "MyIngress.addMSLP",
+                        "params": {"labels": lbl},
                     }
 
             curr_state = next_state
             tunnels[name]["state"] = next_state
-            sleep_boost = 3   # Leave more time for the changes to be effective
-            print(f"[{name}] switched to state {curr_state}\n")
+            sleep_boost = 3
+            print(f"[{name}] SWITCHED TO STATE {curr_state}\n")
         else:
-            print(f"[{name}] no switch needed\n")
+            print(f"[{name}] NO STATE SWITCH NEEDED\n")
 
         sleep(interval * sleep_boost)
         
+def full_reset(
+    switches_config_path,
+    switch_programs_path,
+    tunnels_config_path,
+    clone_config_path,
+    connections,
+    clones,
+    tunnels,
+    state,
+):
+    print("PERFORMING FULL RESET OF CONTROLLER AND SWITCHES")
 
-###############   RESET FUNCTIONS   ###############
-
-# Function to perform a full reset of the controller and switches
-def full_reset(switches_config_path, switch_programs_path, tunnels_config_path, clone_config_path, 
-              connections, clones, tunnels, state):
-    print("🔄 Performing full reset of the controller and switches...")
-
-    # Stop all active threads and connections
     stop_tunnel_monitor_threads(tunnels)
-    ShutdownAllSwitchConnections() # in the middle to help stopping clone threads
+    ShutdownAllSwitchConnections()
     stop_clone_engine_threads(clones)
-    
-    # Reload config files
+
     switches_config, program_config, tunnels_config, clone_config = load_config_files(
-        switches_config_path, switch_programs_path, tunnels_config_path, clone_config_path)
-    
-    # Setup everything from scratch
+        switches_config_path,
+        switch_programs_path,
+        tunnels_config_path,
+        clone_config_path,
+    )
+
     create_connections_to_switches(switches_config, connections, state)
-    setup_switches(connections, program_config, clone_config, clones, state, reset=True)
+    setup_switches(connections, program_config, clone_config, clones, state, reset = True)
     setup_tunnels(connections, program_config, tunnels_config, tunnels, state)
 
-    print("✅ All switches have been reset.")
+    print("ALL SWITCHES HAVE BEEN RESET")
     return switches_config, program_config, tunnels_config, clone_config
 
-# Function to reset a switch by reinstalling the P4 program and resetting the state
-def reset_switch(sw_name, switches_config_path, switch_programs_path, tunnels_config_path,
-                clone_config_path, old_program_config, old_tunnels_config, connections, clones, tunnels, state):
-    print(f"🔄 Resetting switch {sw_name}...")
+def reset_switch(
+    sw_name,
+    switches_config_path,
+    switch_programs_path,
+    tunnels_config_path,
+    clone_config_path,
+    old_program_config,
+    old_tunnels_config,
+    connections,
+    clones,
+    tunnels,
+    state,
+):
+    print(f"RESETTING SWITCH {sw_name}")
 
-    # Clean ALL tunnel rules from ALL switches
-    # This is needed to ensure that the tunnel rules are in sync with the new switch rules
-    clean_tunnel_rules(old_tunnels_config["table"], connections, old_program_config, tunnels, state)
-    
-    # Shut down the switch connection and clone session (if any)
+    clean_tunnel_rules(
+        old_tunnels_config["table"],
+        connections,
+        old_program_config,
+        tunnels,
+        state,
+    )
+
     connections[sw_name].shutdown()
     stop_clone_engine_thread_switch(sw_name, clones)
-    
-    # Load config files
-    switches_config, program_config, tunnels_config, clone_config = load_config_files(
-        switches_config_path, switch_programs_path, tunnels_config_path, clone_config_path)
 
-    # Create a new connection to the switch and setup from scratch
+    switches_config, program_config, tunnels_config, clone_config = load_config_files(
+        switches_config_path,
+        switch_programs_path,
+        tunnels_config_path,
+        clone_config_path,
+    )
+
     create_connection_to_switch(sw_name, switches_config, connections, state)
+
     sw_conn = {sw_name: connections[sw_name]}
     sw_program_cfg = {sw_name: program_config[sw_name]}
-    setup_switches(sw_conn, sw_program_cfg, clone_config, clones, state, reset=True)
-    
-    # Reinstall the tunnel rules for ALL switches
+
+    setup_switches(sw_conn, sw_program_cfg, clone_config, clones, state, reset = True)
     setup_tunnels(connections, program_config, tunnels_config, tunnels, state)
 
-    print(f"✅ {sw_name} has been reset.")
+    print(f"SWITCH {sw_name} HAS BEEN RESET")
     return switches_config, program_config, tunnels_config, clone_config
 
-# Function to reset the packet count of all counters on all switches
 def reset_all_counters(connections, program_config, tunnels_config):
-
     counter_name = tunnels_config["counter_name"]
-    # Reset tunnel counters
+
     for tcfg in tunnels_config["tunnels"]:
         for side, role in [("switchA", "A"), ("switchB", "B")]:
             sw_name = tcfg[side]
-            helper  = program_config[sw_name]["helper"]
-            sw      = connections[sw_name]
-            idxs    = tcfg["counter_index"]
-            # Reset both up/down indices
+            helper = program_config[sw_name]["helper"]
+            sw = connections[sw_name]
+            idxs = tcfg["counter_index"]
+
             wr.reset_counter(helper, sw, counter_name, idxs[f"{role}_up"])
             wr.reset_counter(helper, sw, counter_name, idxs[f"{role}_down"])
             
-            
-###############   RESET UTILS   ###############
-
-# Function to clean all tunnel rules from a switch's tunnel table using the controller's state
 def clean_tunnel_rules(table_name, connections, program_config, tunnels, state):
+    print("CLEANING ALL TUNNEL RULES FROM ALL SWITCHES")
 
-    print("🧽 Cleaning ALL tunnel rules from all switches...")
-
-    # Stop ALL tunnel monitor threads
-    for tname, tinfo in tunnels.items():
+    for tname, tinfo in list(tunnels.items()):
         tinfo["stop_event"].set()
         tinfo["thread"].join()
-        print(f"🛑 Stopped tunnel monitor for {tname}")
+        print(f"STOPPED TUNNEL MONITOR FOR {tname}")
+
     tunnels.clear()
-    
-    # Remove all tunnel rules from the tables and state
+
     for sw_name, sw in connections.items():
-        # Get current state for the table
         table_state = state.get(sw_name, {}).get(table_name, {})
 
-        # Loop over all match entries in the state
-        for key_str in list(table_state.keys()):  # list() to safely modify during iteration
+        for key_str in list(table_state.keys()):
             match_fields = json.loads(key_str)
+
             try:
-                # Build and delete the entry
                 entry = program_config[sw_name]["helper"].buildTableEntry(
-                    table_name=table_name,
-                    match_fields=match_fields,
-                    default_action=False
+                    table_name = table_name,
+                    match_fields = match_fields,
+                    default_action = False,
                 )
+
                 sw.DeleteTableEntry(entry)
                 del table_state[key_str]
-                print(f"🗑️ Removed rule with match {match_fields} from {sw_name}")
-            except Exception as e:
-                print(f"⚠️ Could not remove rule {match_fields} from {sw_name}: {e}")
-                
-# Function to stop the clone engine thread of one switch    
-def stop_clone_engine_thread_switch(sw_name, clones):    
 
+                print(f"REMOVED TUNNEL RULE {match_fields} FROM {sw_name}")
+            except Exception as e:
+                print(f"ERROR REMOVING RULE {match_fields} FROM {sw_name}: {e}")
+                
+def stop_clone_engine_thread_switch(sw_name, clones):
     if sw_name in clones:
         clones[sw_name]["stop_event"].set()
         clones[sw_name]["thread"].join()
         del clones[sw_name]
     
-# Function to stop the threads of the clone engines and clean them up
 def stop_clone_engine_threads(clones):
-        
-    # Stop all packet-in listener threads
-    for sw_name, clone in clones.items():
+    for sw_name, clone in list(clones.items()):
         clone["stop_event"].set()
         clone["thread"].join()
-        print(f"Stopped packet-in listener for {sw_name}")
+        print(f"STOPPED PACKET-IN LISTENER FOR {sw_name}")
+
     clones.clear()
 
 def stop_tunnel_monitor_threads(tunnels):
-    
-    # Stop all tunnel monitor threads
-    for tname, tinfo in tunnels.items():
+    for tname, tinfo in list(tunnels.items()):
         tinfo["stop_event"].set()
         tinfo["thread"].join()
-        print(f"Stopped tunnel monitor for {tname}")
+        print(f"STOPPED TUNNEL MONITOR FOR {tname}")
+
     tunnels.clear()
 
-
-###############   USER INPUT HANDLERS   ###############
-
-# Function to handle the reset command logic
-def handle_reset(target, switches_config_path, switch_programs_path, tunnels_config_path, 
-            clone_config_path, switches_config, program_config, tunnels_config, clone_config,
-            connections, clones, tunnels, state):
+def handle_reset(
+    target,
+    switches_config_path,
+    switch_programs_path,
+    tunnels_config_path,
+    clone_config_path,
+    switches_config,
+    program_config,
+    tunnels_config,
+    clone_config,
+    connections,
+    clones,
+    tunnels,
+    state,
+):
     if target == "all":
-        # Perform a full reset of the controller and switches
         switches_config, program_config, tunnels_config, clone_config = full_reset(
-            switches_config_path, switch_programs_path, tunnels_config_path, 
-            clone_config_path, connections, clones, tunnels, state)
-    
+            switches_config_path,
+            switch_programs_path,
+            tunnels_config_path,
+            clone_config_path,
+            connections,
+            clones,
+            tunnels,
+            state,
+        )
+
     elif target == "tunnels":
-        # Clean tunnel rules from all switches
-        clean_tunnel_rules(tunnels_config["table"], connections,
-                            program_config, tunnels, state)
-        # Setup the tunnels and start the load balancing threads
-        setup_tunnels(connections, program_config, tunnels_config, 
-                        tunnels, state)
-        
+        clean_tunnel_rules(
+            tunnels_config["table"],
+            connections,
+            program_config,
+            tunnels,
+            state,
+        )
+        setup_tunnels(
+            connections,
+            program_config,
+            tunnels_config,
+            tunnels,
+            state,
+        )
+
     elif target == "counters":
-        # Reset all counters on all switches
         reset_all_counters(connections, program_config, tunnels_config)
-        
+
     elif target in connections:
-        # Reset the specified switch
         switches_config, program_config, tunnels_config, clone_config = reset_switch(
-            target, switches_config_path, switch_programs_path, tunnels_config_path, 
-            clone_config_path, program_config, tunnels_config, connections, clones, tunnels, state)
+            target,
+            switches_config_path,
+            switch_programs_path,
+            tunnels_config_path,
+            clone_config_path,
+            program_config,
+            tunnels_config,
+            connections,
+            clones,
+            tunnels,
+            state,
+        )
 
     else:
-        print(f"Unknown target for reset: '{target}'")
-        
+        print(f"UNKNOWN TARGET FOR RESET {target}")
+
     return switches_config, program_config, tunnels_config, clone_config
 
-# Function to handle the show command logic     
 def handle_show(target, connections, program_config, state):
     if target == "state":
-        print("---------- Controller State ----------")
+        print("---------- CONTROLLER STATE ----------")
         pprint(state)
-        print()
-    
+        print("")
     elif target in connections:
         helper = program_config[target]["helper"]
         rd.print_table_rules(helper, connections[target])
-    
     else:
-        print(f"Unknown show target: '{target}'")
-
-
-###############   SHUTDOWN   ###############
+        print(f"UNKNOWN SHOW TARGET {target}")
 
 def graceful_shutdown(clones, tunnels):
-    print("Shutting down...")
+    print("SHUTTING DOWN...")
 
-    # Shut down all gRPC switch connections to break threads loops
     ShutdownAllSwitchConnections()
-
     stop_clone_engine_threads(clones)
     stop_tunnel_monitor_threads(tunnels)
-    print("Controller exited cleanly.")
+
+    if metrics_stop_event is not None:
+        metrics_stop_event.set()
+    if metrics_thread is not None and metrics_thread.is_alive():
+        metrics_thread.join()
+
+    print("CONTROLLER EXITED CLEANLY")
 
 def traffic_control(action):
-    """
-    Controla a geração de tráfego na topo via servidor HTTP local.
-
-    action: 'wget_on', 'wget_off', 'iperf_on', 'iperf_off'
-    """
     path_map = {
-        "wget_on":  "/traffic/wget/start",
+        "wget_on": "/traffic/wget/start",
         "wget_off": "/traffic/wget/stop",
         "iperf_on": "/traffic/iperf/start",
         "iperf_off": "/traffic/iperf/stop",
     }
 
     if action not in path_map:
-        print(f"[TRAFFIC] Unknown action: {action}")
+        print(f"TRAFFIC UNKNOWN ACTION {action}")
         return
 
     url = f"http://127.0.0.1:9000{path_map[action]}"
 
     try:
-        # Usamos POST porque o servidor na topo trata apenas POST
-        req = urllib.request.Request(url, data=b"", method="POST")
-        with urllib.request.urlopen(req, timeout=2.0) as resp:
-            body = resp.read().decode("utf-8", errors="ignore")
-            print(f"[TRAFFIC] {body}")
+        req = urllib.request.Request(url, data = b"", method = "POST")
+        with urllib.request.urlopen(req, timeout = 2.0) as resp:
+            body = resp.read().decode("utf-8", errors = "ignore")
+            print(f"TRAFFIC {body}")
     except Exception as e:
-        print(f"[TRAFFIC] ERROR contacting traffic controller: {e}")
+        print(f"TRAFFIC ERROR CONTACTING TRAFFIC CONTROLLER: {e}")
         
-    
-###############   MAIN EXECUTION   ###############
-
-# Main function that initializes P4Runtime connections and performs setup
 def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_config_path):
-
-    # Variables to store the state of the tables
     switches_config = {}
     program_config = {}
     clone_config = {}
@@ -757,29 +814,35 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
     clones = {}
 
     try:
-        # Load config files
         switches_config, program_config, tunnels_config, clone_config = load_config_files(
-            switches_config_path, switch_programs_path, tunnels_config_path, clone_config_path)
+            switches_config_path,
+            switch_programs_path,
+            tunnels_config_path,
+            clone_config_path,
+        )
 
-        # Create P4Runtime connections to the switches
         create_connections_to_switches(switches_config, connections, state)
-
-        # Do the initial setup of the switches
         setup_switches(connections, program_config, clone_config, clones, state)
-
-        # Setup the tunnels and start the load balancing threads
         setup_tunnels(connections, program_config, tunnels_config, tunnels, state)
 
-        # Loop to handle user input for resetting switches and showing state
+        global metrics_thread, metrics_stop_event
+        metrics_stop_event = threading.Event()
+        metrics_thread = threading.Thread(
+            target=poll_vmon_metrics,
+            args=(metrics_stop_event, 1.0),
+            daemon=True,
+        )
+        metrics_thread.start()
+        print("[VMON POLL] STARTED BACKGROUND METRICS POLLING")
+
         while True:
             try:
                 user_input = input("\nCONTROLLER> ").strip()
             except (EOFError, KeyboardInterrupt):
-                print("\n[CLI] INTERRUPT RECEIVED. SHUTTING DOWN NOW...")
+                print("\nCLI INTERRUPT RECEIVED. SHUTTING DOWN NOW...")
                 graceful_shutdown(clones, tunnels)
                 break
 
-            # Ignore empty lines
             if not user_input:
                 continue
 
@@ -787,30 +850,25 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
             cmd = parts[0].lower()
             args = parts[1:]
 
-            # --------------------------------
-            # COMMAND: HELP
-            # --------------------------------
             if cmd in ("help", "?"):
                 print("\nAVAILABLE COMMANDS:")
-                print("  RESET <TARGET>        - RESET ALL|TUNNELS|COUNTERS|<SWITCH_NAME>")
-                print("  SHOW <TARGET>         - SHOW STATE|<SWITCH_NAME>")
+                print("  RESET <TARGET>        - RESET ALL | TUNNELS | COUNTERS | <SWITCH_NAME>")
+                print("  SHOW <TARGET>         - SHOW STATE | <SWITCH_NAME>")
                 print("  METRICS               - SHOW FULL VMON METRICS SNAPSHOT")
-                print("  TRAFFIC WGET ON|OFF   - CONTROL SEQUENTIAL HTTP (WGET) TRAFFIC (H1→H2→H3)")
-                print("  TRAFFIC IPERF ON|OFF  - CONTROL SEQUENTIAL IPERF TRAFFIC (H1→H2→H3)")
-                print("  EXIT|QUIT|Q           - TERMINATE CONTROLLER")
+                print("  TRAFFIC WGET ON|OFF   - CONTROL SEQUENTIAL HTTP (WGET) TRAFFIC")
+                print("  TRAFFIC IPERF ON|OFF  - CONTROL SEQUENTIAL IPERF TRAFFIC")
+                print("  EXIT | QUIT | Q       - TERMINATE CONTROLLER")
                 print("")
                 continue
 
-            # --------------------------------
-            # COMMAND: RESET <TARGET>
-            # --------------------------------
             if cmd == "reset":
                 if len(args) != 1:
-                    print("[CLI] INVALID SYNTAX FOR COMMAND 'RESET'.")
+                    print("CLI INVALID SYNTAX FOR RESET")
                     print("USAGE: RESET <ALL|TUNNELS|COUNTERS|SWITCH_NAME>")
                     continue
 
                 target = args[0]
+
                 switches_config, program_config, tunnels_config, clone_config = handle_reset(
                     target,
                     switches_config_path,
@@ -824,16 +882,13 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
                     connections,
                     clones,
                     tunnels,
-                    state
+                    state,
                 )
                 continue
 
-            # --------------------------------
-            # COMMAND: SHOW <TARGET>
-            # --------------------------------
             if cmd == "show":
                 if len(args) != 1:
-                    print("[CLI] INVALID SYNTAX FOR COMMAND 'SHOW'.")
+                    print("CLI INVALID SYNTAX FOR SHOW")
                     print("USAGE: SHOW <STATE|SWITCH_NAME>")
                     continue
 
@@ -841,95 +896,104 @@ def main(switches_config_path, switch_programs_path, tunnels_config_path, clone_
                 handle_show(target, connections, program_config, state)
                 continue
 
-            # --------------------------------
-            # COMMAND: METRICS
-            # --------------------------------
             if cmd == "metrics":
                 if len(args) != 0:
-                    print("[CLI] INVALID SYNTAX FOR COMMAND 'METRICS'.")
+                    print("CLI INVALID SYNTAX FOR METRICS")
                     print("USAGE: METRICS")
                     continue
 
                 handle_metrics()
                 continue
 
-            # --------------------------------
-            # COMMAND: TRAFFIC <WGET|IPERF> <ON|OFF>
-            # --------------------------------
             if cmd == "traffic":
                 if len(args) != 2:
-                    print("[CLI] INVALID SYNTAX FOR COMMAND 'TRAFFIC'.")
+                    print("CLI INVALID SYNTAX FOR TRAFFIC")
                     print("USAGE: TRAFFIC <WGET|IPERF> <ON|OFF>")
                     continue
 
                 kind = args[0].lower()
-                state_arg = args[1].lower()
+                mode = args[1].lower()
 
-                if kind not in ("wget", "iperf") or state_arg not in ("on", "off"):
-                    print("[CLI] INVALID TRAFFIC ARGS.")
+                if kind not in ("wget", "iperf") or mode not in ("on", "off"):
+                    print("CLI INVALID TRAFFIC ARGUMENTS")
                     print("USAGE: TRAFFIC <WGET|IPERF> <ON|OFF>")
                     continue
 
-                action = f"{kind}_{'on' if state_arg == 'on' else 'off'}"
+                action = f"{kind}_{'on' if mode == 'on' else 'off'}"
                 traffic_control(action)
                 continue
 
-            # --------------------------------
-            # COMMAND: EXIT / QUIT / Q
-            # --------------------------------
             if cmd in ("exit", "quit", "q"):
-                print("[CLI] CONTROLLER EXIT REQUESTED BY USER. SHUTTING DOWN...")
+                print("CLI CONTROLLER EXIT REQUESTED. SHUTTING DOWN...")
                 graceful_shutdown(clones, tunnels)
                 break
 
-            # --------------------------------
-            # UNKNOWN COMMAND
-            # --------------------------------
-            print(f"[CLI] UNKNOWN COMMAND: '{user_input}'")
-            print("TYPE 'HELP' TO SEE AVAILABLE COMMANDS.")
+            print(f"CLI UNKNOWN COMMAND {user_input}")
+            print("TYPE HELP TO SEE AVAILABLE COMMANDS")
 
     except KeyboardInterrupt:
-        print("Controller interrupted by user.")
+        print("CONTROLLER INTERRUPTED BY USER")
         graceful_shutdown(clones, tunnels)
 
     except grpc.RpcError as e:
-        print("gRPC Error:", e.details(), end=' ')
+        print("GRPC ERROR:", e.details(), end = " ")
         status_code = e.code()
-        print("(%s)" % status_code.name, end=' ')
+        print(f"({status_code.name})", end = " ")
         traceback = sys.exc_info()[2]
-        print("[%s:%d]" % (traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
+        print(f"[{traceback.tb_frame.f_code.co_filename}:{traceback.tb_lineno}]")
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description = "P4Runtime Controller")
 
-# Entry point for the script
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='P4Runtime Controller')
-    parser.add_argument('--config', type=str, action="store", required=True,
-                        help='json file with the switches configuration')
-    parser.add_argument('--programs', type=str, action="store", required=True,
-                        help='json file with the P4 programs configuration')
-    parser.add_argument('--tunnels', type=str, action="store", required=True,
-                        help='json file with the tunnels configuration')
-    parser.add_argument('--clone', type=str, action="store", required=True,
-                        help='json file with the mc and clone sessions configuration')
+    parser.add_argument(
+        "--config",
+        type = str,
+        action = "store",
+        required = True,
+        help = "json file with the switches configuration",
+    )
+    parser.add_argument(
+        "--programs",
+        type = str,
+        action = "store",
+        required = True,
+        help = "json file with the P4 programs configuration",
+    )
+    parser.add_argument(
+        "--tunnels",
+        type = str,
+        action = "store",
+        required = True,
+        help = "json file with the tunnels configuration",
+    )
+    parser.add_argument(
+        "--clone",
+        type = str,
+        action = "store",
+        required = True,
+        help = "json file with the mc and clone sessions configuration",
+    )
 
     args = parser.parse_args()
 
-    # Validate the provided paths for p4infos and JSONs files
     if not os.path.exists(args.config):
         parser.print_help()
-        print("\nconfig file not found:")
+        print("\nCONFIG FILE NOT FOUND")
         parser.exit(1)
+
     if not os.path.exists(args.programs):
         parser.print_help()
-        print("\nprograms file not found:")
+        print("\nPROGRAMS FILE NOT FOUND")
         parser.exit(1)
+
     if not os.path.exists(args.tunnels):
         parser.print_help()
-        print("\ntunnels file not found:")
+        print("\nTUNNELS FILE NOT FOUND")
         parser.exit(1)
+
     if not os.path.exists(args.clone):
         parser.print_help()
-        print("\nclone file not found:")
+        print("\nCLONE FILE NOT FOUND")
         parser.exit(1)
-    
+
     main(args.config, args.programs, args.tunnels, args.clone)

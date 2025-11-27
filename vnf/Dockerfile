@@ -23,6 +23,7 @@ RUN pip3 install flask prometheus_client scapy
 
 COPY entrypoint.sh /entrypoint.sh
 COPY vmon.py /vmon.py
+COPY vlb.py /vlb.py
 
 RUN chmod +x /entrypoint.sh
 
