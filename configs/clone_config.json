@@ -12,6 +12,12 @@
             { "egress_port": 510, "instance": 1 }
         ]
     },
+    "r1": {
+        "vmonSessionId": 99,
+        "vmonReplicas": [
+            { "egress_port": 4, "instance": 1 }
+        ]
+    },
     "r4": {
         "vmonSessionId": 99,
         "vmonReplicas": [

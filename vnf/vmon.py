@@ -12,7 +12,7 @@ from scapy.all import sniff, Ether, IP, TCP, UDP
 from flask import Flask, jsonify
 from urllib import request, error as urlerror
 
-INTERFACE = "vmon-eth0"
+INTERFACES = ["vmon-eth0", "vmon-eth1"]
 
 PACKET_LOG_FILE = "/tmp/vmon_packets.log"
 METRICS_FILE = "/tmp/vmon_metrics.json"
@@ -69,6 +69,7 @@ def ensure_flow_entry(
     dst_ip: str,
     src_port: int,
     dst_port: int,
+    iface: Optional[str] = None,
 ) -> FlowKey:
     key: FlowKey = (proto, src_ip, dst_ip, src_port, dst_port)
     ts_iso = now_iso()
@@ -93,6 +94,8 @@ def ensure_flow_entry(
             "tcp_fin": 0,
             "tcp_rst": 0,
             "syn_rtt_ms": None,
+            "first_iface": iface,
+            "last_iface": iface,
         }
 
     return key
@@ -105,9 +108,10 @@ def update_flow_stats(
     dst_port: int,
     length: int,
     tcp_flags: Optional[int] = None,
+    iface: Optional[str] = None,
 ) -> None:
     with flows_lock:
-        key = ensure_flow_entry(proto, src_ip, dst_ip, src_port, dst_port)
+        key = ensure_flow_entry(proto, src_ip, dst_ip, src_port, dst_port, iface)
         entry = flows[key]
 
         entry["packets"] += 1
@@ -118,6 +122,11 @@ def update_flow_stats(
 
         entry["last_seen"] = ts_iso
         entry["last_seen_epoch"] = ts_epoch
+
+        if iface is not None:
+            if entry.get("first_iface") is None:
+                entry["first_iface"] = iface
+            entry["last_iface"] = iface
 
         if proto == "TCP" and tcp_flags is not None:
             syn = bool(tcp_flags & 0x02)
@@ -163,6 +172,7 @@ def track_tcp_syn_rtt(
                         ip_src,
                         dport,
                         sport,
+                        iface = None,
                     )
                     entry = flows[flow_key]
                     if entry["syn_rtt_ms"] is None or rtt_ms < entry["syn_rtt_ms"]:
@@ -171,6 +181,8 @@ def track_tcp_syn_rtt(
 def handle_packet(pkt) -> None:
     if not pkt.haslayer(Ether):
         return
+    
+    iface = getattr(pkt, "sniffed_on", None)
 
     eth = pkt[Ether]
     length = len(pkt)
@@ -181,6 +193,9 @@ def handle_packet(pkt) -> None:
         f"TYPE = 0x{eth.type:04x}",
         f"LEN = {length}",
     ]
+
+    if iface is not None:
+        line_parts.append(f"IFACE = {iface}")
 
     if pkt.haslayer(IP):
         ip = pkt[IP]
@@ -198,6 +213,7 @@ def handle_packet(pkt) -> None:
                 dst_port = int(tcp.dport),
                 length = length,
                 tcp_flags = flags_int,
+                iface = iface,
             )
             track_tcp_syn_rtt(ip.src, ip.dst, int(tcp.sport), int(tcp.dport), flags_int)
 
@@ -211,6 +227,7 @@ def handle_packet(pkt) -> None:
                 src_port = int(udp.sport),
                 dst_port = int(udp.dport),
                 length = length,
+                iface = iface,
             )
         else:
             update_flow_stats(
@@ -220,6 +237,7 @@ def handle_packet(pkt) -> None:
                 src_port = 0,
                 dst_port = 0,
                 length = length,
+                iface = iface,
             )
 
     log_packet_line(" | ".join(line_parts))
@@ -288,7 +306,7 @@ def metrics_flush_loop(interval_seconds: int = FLUSH_INTERVAL_SECONDS) -> None:
 
 def sniff_loop() -> None:
     sniff(
-        iface = INTERFACE,
+        iface = INTERFACES,
         prn = handle_packet,
         store = False,
     )

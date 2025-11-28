@@ -32,7 +32,8 @@
         ["metadata.tcp_opt_size", 8, false],
         ["metadata.tunnel", 2, false],
         ["metadata.setRecirculate", 1, false],
-        ["_padding_0", 5, false]
+        ["metadata.cloneToVmon", 1, false],
+        ["_padding_0", 4, false]
       ]
     },
     {
@@ -147,8 +148,19 @@
       ]
     },
     {
-      "name" : "label_t",
+      "name" : "vmon_cpu_t",
       "id" : 9,
+      "fields" : [
+        ["src_ip", 32, false],
+        ["dst_ip", 32, false],
+        ["src_port", 16, false],
+        ["dst_port", 16, false],
+        ["proto", 8, false]
+      ]
+    },
+    {
+      "name" : "label_t",
+      "id" : 10,
       "fields" : [
         ["label", 16, false],
         ["bos", 8, false]
@@ -220,29 +232,36 @@
       "pi_omit" : true
     },
     {
-      "name" : "labels[0]",
+      "name" : "vmon_cpu",
       "id" : 9,
-      "header_type" : "label_t",
+      "header_type" : "vmon_cpu_t",
       "metadata" : false,
       "pi_omit" : true
     },
     {
-      "name" : "labels[1]",
+      "name" : "labels[0]",
       "id" : 10,
       "header_type" : "label_t",
       "metadata" : false,
       "pi_omit" : true
     },
     {
-      "name" : "labels[2]",
+      "name" : "labels[1]",
       "id" : 11,
       "header_type" : "label_t",
       "metadata" : false,
       "pi_omit" : true
     },
     {
-      "name" : "labels[3]",
+      "name" : "labels[2]",
       "id" : 12,
+      "header_type" : "label_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "labels[3]",
+      "id" : 13,
       "header_type" : "label_t",
       "metadata" : false,
       "pi_omit" : true
@@ -254,7 +273,7 @@
       "id" : 0,
       "header_type" : "label_t",
       "size" : 4,
-      "header_ids" : [9, 10, 11, 12]
+      "header_ids" : [10, 11, 12, 13]
     }
   ],
   "header_union_types" : [],
@@ -264,6 +283,11 @@
     {
       "id" : 1,
       "name" : "empty",
+      "elements" : []
+    },
+    {
+      "id" : 2,
+      "name" : "empty_0",
       "elements" : []
     }
   ],
@@ -737,11 +761,11 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l3switch_mslp.p4",
-        "line" : 393,
+        "line" : 434,
         "column" : 8,
         "source_fragment" : "MyDeparser"
       },
-      "order" : ["ethernet", "mslp", "labels[0]", "labels[1]", "labels[2]", "labels[3]", "ipv4", "icmp", "tcp", "tcp_opt", "udp"],
+      "order" : ["ethernet", "mslp", "labels[0]", "labels[1]", "labels[2]", "labels[3]", "ipv4", "icmp", "tcp", "tcp_opt", "udp", "vmon_cpu"],
       "primitives" : []
     }
   ],
@@ -752,7 +776,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l3switch_mslp.p4",
-        "line" : 193,
+        "line" : 204,
         "column" : 36,
         "source_fragment" : "tunnel_counter"
       },
@@ -875,7 +899,7 @@
       "id" : 4,
       "source_info" : {
         "filename" : "p4/l3switch_mslp.p4",
-        "line" : 370,
+        "line" : 411,
         "column" : 8,
         "source_fragment" : "update_checksum( ..."
       },
@@ -945,7 +969,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 196,
+            "line" : 207,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -967,7 +991,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 196,
+            "line" : 207,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -989,7 +1013,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 196,
+            "line" : 207,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -1011,7 +1035,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 196,
+            "line" : 207,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -1033,7 +1057,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 196,
+            "line" : 207,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -1068,7 +1092,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 200,
+            "line" : 211,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = egressPort"
           }
@@ -1087,7 +1111,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 201,
+            "line" : 212,
             "column" : 8,
             "source_fragment" : "meta.nextHopMac = nextHopMac"
           }
@@ -1129,7 +1153,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 202,
+            "line" : 213,
             "column" : 8,
             "source_fragment" : "hdr.ipv4.ttl = hdr.ipv4.ttl - 1"
           }
@@ -1166,7 +1190,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 221,
+            "line" : 232,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.srcAddr = srcMac"
           }
@@ -1185,7 +1209,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 222,
+            "line" : 233,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.dstAddr = meta.nextHopMac"
           }
@@ -1220,7 +1244,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 238,
+            "line" : 249,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = egressPort"
           }
@@ -1239,7 +1263,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 239,
+            "line" : 250,
             "column" : 8,
             "source_fragment" : "meta.nextHopMac = nextHopMac"
           }
@@ -1265,7 +1289,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 243,
+            "line" : 254,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.etherType = hdr.mslp.etherType"
           }
@@ -1280,7 +1304,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 244,
+            "line" : 255,
             "column" : 8,
             "source_fragment" : "hdr.mslp.setInvalid()"
           }
@@ -1295,7 +1319,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 245,
+            "line" : 256,
             "column" : 8,
             "source_fragment" : "hdr.labels[0].setInvalid()"
           }
@@ -1310,7 +1334,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 246,
+            "line" : 257,
             "column" : 8,
             "source_fragment" : "hdr.labels[1].setInvalid()"
           }
@@ -1325,7 +1349,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 247,
+            "line" : 258,
             "column" : 8,
             "source_fragment" : "hdr.labels[2].setInvalid()"
           }
@@ -1340,7 +1364,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 248,
+            "line" : 259,
             "column" : 8,
             "source_fragment" : "hdr.labels[3].setInvalid()"
           }
@@ -1367,7 +1391,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 265,
+            "line" : 276,
             "column" : 8,
             "source_fragment" : "hdr.mslp"
           }
@@ -1386,7 +1410,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 265,
+            "line" : 276,
             "column" : 8,
             "source_fragment" : "hdr.mslp = { hdr.ethernet.etherType"
           }
@@ -1401,7 +1425,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 266,
+            "line" : 277,
             "column" : 8,
             "source_fragment" : "hdr.mslp.setValid()"
           }
@@ -1416,7 +1440,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 267,
+            "line" : 278,
             "column" : 8,
             "source_fragment" : "hdr.labels[0]"
           }
@@ -1468,7 +1492,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 267,
+            "line" : 278,
             "column" : 8,
             "source_fragment" : "hdr.labels[0] = { labels[63:48]"
           }
@@ -1487,7 +1511,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 267,
+            "line" : 278,
             "column" : 8,
             "source_fragment" : "hdr.labels[0] = { labels[63:48], 0x00"
           }
@@ -1502,7 +1526,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 268,
+            "line" : 279,
             "column" : 8,
             "source_fragment" : "hdr.labels[1]"
           }
@@ -1554,7 +1578,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 268,
+            "line" : 279,
             "column" : 8,
             "source_fragment" : "hdr.labels[1] = { labels[47:32]"
           }
@@ -1573,7 +1597,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 268,
+            "line" : 279,
             "column" : 8,
             "source_fragment" : "hdr.labels[1] = { labels[47:32], 0x00"
           }
@@ -1588,7 +1612,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 269,
+            "line" : 280,
             "column" : 8,
             "source_fragment" : "hdr.labels[2]"
           }
@@ -1640,7 +1664,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 269,
+            "line" : 280,
             "column" : 8,
             "source_fragment" : "hdr.labels[2] = { labels[31:16]"
           }
@@ -1659,7 +1683,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 269,
+            "line" : 280,
             "column" : 8,
             "source_fragment" : "hdr.labels[2] = { labels[31:16], 0x00"
           }
@@ -1674,7 +1698,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 270,
+            "line" : 281,
             "column" : 8,
             "source_fragment" : "hdr.labels[3]"
           }
@@ -1706,7 +1730,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 270,
+            "line" : 281,
             "column" : 8,
             "source_fragment" : "hdr.labels[3] = { labels[15:0]"
           }
@@ -1725,7 +1749,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 270,
+            "line" : 281,
             "column" : 8,
             "source_fragment" : "hdr.labels[3] = { labels[15:0], 0x01"
           }
@@ -1740,7 +1764,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 271,
+            "line" : 282,
             "column" : 8,
             "source_fragment" : "hdr.labels[0].setValid()"
           }
@@ -1755,7 +1779,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 272,
+            "line" : 283,
             "column" : 8,
             "source_fragment" : "hdr.labels[1].setValid()"
           }
@@ -1770,7 +1794,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 273,
+            "line" : 284,
             "column" : 8,
             "source_fragment" : "hdr.labels[2].setValid()"
           }
@@ -1785,7 +1809,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 274,
+            "line" : 285,
             "column" : 8,
             "source_fragment" : "hdr.labels[3].setValid()"
           }
@@ -1812,8 +1836,53 @@
       ]
     },
     {
-      "name" : "MyIngress.selectTunnel",
+      "name" : "MyIngress.clone_to_vmon",
       "id" : 11,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata.cloneToVmon"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 290,
+            "column" : 8,
+            "source_fragment" : "meta.cloneToVmon = 1"
+          }
+        },
+        {
+          "op" : "clone_ingress_pkt_to_egress",
+          "parameters" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x00000063"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x1"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 291,
+            "column" : 8,
+            "source_fragment" : "clone_preserving_field_list(CloneType.I2E, 99, 0)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "MyIngress.selectTunnel",
+      "id" : 12,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -1830,7 +1899,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 296,
+            "line" : 312,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.protocol"
           }
@@ -1849,7 +1918,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 297,
+            "line" : 313,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.srcAddr"
           }
@@ -1868,7 +1937,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 298,
+            "line" : 314,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.dstAddr"
           }
@@ -1887,7 +1956,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 299,
+            "line" : 315,
             "column" : 16,
             "source_fragment" : "srcPort"
           }
@@ -1906,7 +1975,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 300,
+            "line" : 316,
             "column" : 16,
             "source_fragment" : "dstPort"
           }
@@ -1933,7 +2002,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 291,
+            "line" : 307,
             "column" : 8,
             "source_fragment" : "hash( ..."
           }
@@ -1942,7 +2011,7 @@
     },
     {
       "name" : "MyIngress.selectTunnel",
-      "id" : 12,
+      "id" : 13,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -1959,7 +2028,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 296,
+            "line" : 312,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.protocol"
           }
@@ -1978,7 +2047,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 297,
+            "line" : 313,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.srcAddr"
           }
@@ -1997,7 +2066,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 298,
+            "line" : 314,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.dstAddr"
           }
@@ -2016,7 +2085,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 299,
+            "line" : 315,
             "column" : 16,
             "source_fragment" : "srcPort"
           }
@@ -2035,7 +2104,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 300,
+            "line" : 316,
             "column" : 16,
             "source_fragment" : "dstPort"
           }
@@ -2062,7 +2131,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 291,
+            "line" : 307,
             "column" : 8,
             "source_fragment" : "hash( ..."
           }
@@ -2071,7 +2140,7 @@
     },
     {
       "name" : "MyIngress.selectTunnel",
-      "id" : 13,
+      "id" : 14,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2088,7 +2157,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 296,
+            "line" : 312,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.protocol"
           }
@@ -2107,7 +2176,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 297,
+            "line" : 313,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.srcAddr"
           }
@@ -2126,7 +2195,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 298,
+            "line" : 314,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.dstAddr"
           }
@@ -2145,7 +2214,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 299,
+            "line" : 315,
             "column" : 16,
             "source_fragment" : "srcPort"
           }
@@ -2164,7 +2233,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 300,
+            "line" : 316,
             "column" : 16,
             "source_fragment" : "dstPort"
           }
@@ -2191,7 +2260,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 291,
+            "line" : 307,
             "column" : 8,
             "source_fragment" : "hash( ..."
           }
@@ -2200,7 +2269,7 @@
     },
     {
       "name" : "MyIngress.selectTunnel",
-      "id" : 14,
+      "id" : 15,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2217,7 +2286,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 296,
+            "line" : 312,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.protocol"
           }
@@ -2236,7 +2305,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 297,
+            "line" : 313,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.srcAddr"
           }
@@ -2255,7 +2324,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 298,
+            "line" : 314,
             "column" : 16,
             "source_fragment" : "hdr.ipv4.dstAddr"
           }
@@ -2274,7 +2343,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 299,
+            "line" : 315,
             "column" : 16,
             "source_fragment" : "srcPort"
           }
@@ -2293,7 +2362,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 300,
+            "line" : 316,
             "column" : 16,
             "source_fragment" : "dstPort"
           }
@@ -2320,7 +2389,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 291,
+            "line" : 307,
             "column" : 8,
             "source_fragment" : "hash( ..."
           }
@@ -2328,8 +2397,8 @@
       ]
     },
     {
-      "name" : "l3switch_mslp308",
-      "id" : 15,
+      "name" : "l3switch_mslp324",
+      "id" : 16,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2359,7 +2428,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 308,
+            "line" : 324,
             "column" : 33,
             "source_fragment" : "(bit<32>)standard_metadata.ingress_port"
           }
@@ -2378,7 +2447,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 308,
+            "line" : 324,
             "column" : 12,
             "source_fragment" : "tunnel_counter.count((bit<32>)standard_metadata.ingress_port)"
           }
@@ -2386,8 +2455,8 @@
       ]
     },
     {
-      "name" : "l3switch_mslp314",
-      "id" : 16,
+      "name" : "l3switch_mslp331",
+      "id" : 17,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2404,7 +2473,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 314,
+            "line" : 331,
             "column" : 20,
             "source_fragment" : "meta.setRecirculate = 1"
           }
@@ -2412,8 +2481,8 @@
       ]
     },
     {
-      "name" : "l3switch_mslp253",
-      "id" : 17,
+      "name" : "l3switch_mslp264",
+      "id" : 18,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2430,7 +2499,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 253,
+            "line" : 264,
             "column" : 12,
             "source_fragment" : "hdr.labels[0].label"
           }
@@ -2438,8 +2507,8 @@
       ]
     },
     {
-      "name" : "l3switch_mslp337",
-      "id" : 18,
+      "name" : "l3switch_mslp354",
+      "id" : 19,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2456,7 +2525,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 337,
+            "line" : 354,
             "column" : 24,
             "source_fragment" : "meta.setRecirculate = 1"
           }
@@ -2465,7 +2534,7 @@
     },
     {
       "name" : "MyEgress.popLabel",
-      "id" : 19,
+      "id" : 20,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2482,7 +2551,7 @@
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 353,
+            "line" : 370,
             "column" : 8,
             "source_fragment" : "hdr.labels.pop_front(1)"
           }
@@ -2490,8 +2559,561 @@
       ]
     },
     {
-      "name" : "l3switch_mslp358",
-      "id" : 20,
+      "name" : "MyEgress.prepare_vmon_packet",
+      "id" : 21,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "vmon_cpu"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 374,
+            "column" : 8,
+            "source_fragment" : "hdr.vmon_cpu.setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "src_ip"]
+            },
+            {
+              "type" : "field",
+              "value" : ["ipv4", "srcAddr"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 375,
+            "column" : 8,
+            "source_fragment" : "hdr.vmon_cpu.src_ip = hdr.ipv4.srcAddr"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "dst_ip"]
+            },
+            {
+              "type" : "field",
+              "value" : ["ipv4", "dstAddr"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 376,
+            "column" : 8,
+            "source_fragment" : "hdr.vmon_cpu.dst_ip = hdr.ipv4.dstAddr"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "src_port"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["tcp", "srcPort"]
+                  },
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["vmon_cpu", "src_port"]
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "dst_port"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["tcp", "dstPort"]
+                  },
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["vmon_cpu", "dst_port"]
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "proto"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "hexstr",
+                    "value" : "0x06"
+                  },
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["vmon_cpu", "proto"]
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "src_port"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["tcp", "srcPort"]
+                  },
+                  "right" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "?",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["udp", "srcPort"]
+                      },
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["vmon_cpu", "src_port"]
+                      },
+                      "cond" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "d2b",
+                          "left" : null,
+                          "right" : {
+                            "type" : "field",
+                            "value" : ["udp", "$valid$"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "dst_port"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["tcp", "dstPort"]
+                  },
+                  "right" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "?",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["udp", "dstPort"]
+                      },
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["vmon_cpu", "dst_port"]
+                      },
+                      "cond" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "d2b",
+                          "left" : null,
+                          "right" : {
+                            "type" : "field",
+                            "value" : ["udp", "$valid$"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "proto"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "hexstr",
+                    "value" : "0x06"
+                  },
+                  "right" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "?",
+                      "left" : {
+                        "type" : "hexstr",
+                        "value" : "0x11"
+                      },
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["vmon_cpu", "proto"]
+                      },
+                      "cond" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "d2b",
+                          "left" : null,
+                          "right" : {
+                            "type" : "field",
+                            "value" : ["udp", "$valid$"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "src_port"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["tcp", "srcPort"]
+                  },
+                  "right" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "?",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["udp", "srcPort"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0000"
+                      },
+                      "cond" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "d2b",
+                          "left" : null,
+                          "right" : {
+                            "type" : "field",
+                            "value" : ["udp", "$valid$"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "dst_port"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["tcp", "dstPort"]
+                  },
+                  "right" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "?",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["udp", "dstPort"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0000"
+                      },
+                      "cond" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "d2b",
+                          "left" : null,
+                          "right" : {
+                            "type" : "field",
+                            "value" : ["udp", "$valid$"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["vmon_cpu", "proto"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "?",
+                  "left" : {
+                    "type" : "hexstr",
+                    "value" : "0x06"
+                  },
+                  "right" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "?",
+                      "left" : {
+                        "type" : "hexstr",
+                        "value" : "0x11"
+                      },
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["ipv4", "protocol"]
+                      },
+                      "cond" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "d2b",
+                          "left" : null,
+                          "right" : {
+                            "type" : "field",
+                            "value" : ["udp", "$valid$"]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "cond" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "d2b",
+                      "left" : null,
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp", "$valid$"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ethernet", "etherType"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x1235"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 9,
+            "column" : 26,
+            "source_fragment" : "0x1235; ..."
+          }
+        },
+        {
+          "op" : "truncate",
+          "parameters" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x00000040"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 391,
+            "column" : 8,
+            "source_fragment" : "truncate(64)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "l3switch_mslp399",
+      "id" : 22,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2499,12 +3121,12 @@
           "parameters" : [
             {
               "type" : "hexstr",
-              "value" : "0x1"
+              "value" : "0x2"
             }
           ],
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 358,
+            "line" : 399,
             "column" : 12,
             "source_fragment" : "recirculate_preserving_field_list(0)"
           }
@@ -2518,18 +3140,18 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l3switch_mslp.p4",
-        "line" : 189,
+        "line" : 200,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
       "init_table" : "node_2",
       "tables" : [
         {
-          "name" : "tbl_l3switch_mslp308",
+          "name" : "tbl_l3switch_mslp324",
           "id" : 0,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 308,
+            "line" : 324,
             "column" : 12,
             "source_fragment" : "tunnel_counter.count((bit<32>)standard_metadata.ingress_port)"
           },
@@ -2540,25 +3162,54 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [15],
-          "actions" : ["l3switch_mslp308"],
-          "base_default_next" : "node_4",
+          "action_ids" : [16],
+          "actions" : ["l3switch_mslp324"],
+          "base_default_next" : "tbl_clone_to_vmon",
           "next_tables" : {
-            "l3switch_mslp308" : "node_4"
+            "l3switch_mslp324" : "tbl_clone_to_vmon"
           },
           "default_entry" : {
-            "action_id" : 15,
+            "action_id" : 16,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_l3switch_mslp253",
+          "name" : "tbl_clone_to_vmon",
           "id" : 1,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 253,
+            "line" : 325,
+            "column" : 12,
+            "source_fragment" : "clone_to_vmon()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [11],
+          "actions" : ["MyIngress.clone_to_vmon"],
+          "base_default_next" : "node_5",
+          "next_tables" : {
+            "MyIngress.clone_to_vmon" : "node_5"
+          },
+          "default_entry" : {
+            "action_id" : 11,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_l3switch_mslp264",
+          "id" : 2,
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 264,
             "column" : 12,
             "source_fragment" : "hdr.labels[0].label"
           },
@@ -2569,14 +3220,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [17],
-          "actions" : ["l3switch_mslp253"],
+          "action_ids" : [18],
+          "actions" : ["l3switch_mslp264"],
           "base_default_next" : "MyIngress.labelLookup",
           "next_tables" : {
-            "l3switch_mslp253" : "MyIngress.labelLookup"
+            "l3switch_mslp264" : "MyIngress.labelLookup"
           },
           "default_entry" : {
-            "action_id" : 17,
+            "action_id" : 18,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -2584,10 +3235,10 @@
         },
         {
           "name" : "MyIngress.labelLookup",
-          "id" : 2,
+          "id" : 3,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 251,
+            "line" : 262,
             "column" : 10,
             "source_fragment" : "labelLookup"
           },
@@ -2609,7 +3260,7 @@
           "actions" : ["MyIngress.forwardTunnel", "MyIngress.removeMSLP", "MyIngress.drop"],
           "base_default_next" : null,
           "next_tables" : {
-            "MyIngress.removeMSLP" : "tbl_l3switch_mslp314",
+            "MyIngress.removeMSLP" : "tbl_l3switch_mslp331",
             "MyIngress.forwardTunnel" : "MyIngress.internalMacLookup",
             "MyIngress.drop" : null
           },
@@ -2621,11 +3272,11 @@
           }
         },
         {
-          "name" : "tbl_l3switch_mslp314",
-          "id" : 3,
+          "name" : "tbl_l3switch_mslp331",
+          "id" : 4,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 314,
+            "line" : 331,
             "column" : 40,
             "source_fragment" : "="
           },
@@ -2636,14 +3287,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [16],
-          "actions" : ["l3switch_mslp314"],
+          "action_ids" : [17],
+          "actions" : ["l3switch_mslp331"],
           "base_default_next" : null,
           "next_tables" : {
-            "l3switch_mslp314" : null
+            "l3switch_mslp331" : null
           },
           "default_entry" : {
-            "action_id" : 16,
+            "action_id" : 17,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -2651,10 +3302,10 @@
         },
         {
           "name" : "MyIngress.internalMacLookup",
-          "id" : 4,
+          "id" : 5,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 225,
+            "line" : 236,
             "column" : 10,
             "source_fragment" : "internalMacLookup"
           },
@@ -2688,10 +3339,10 @@
         },
         {
           "name" : "MyIngress.ipv4Lpm",
-          "id" : 5,
+          "id" : 6,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 207,
+            "line" : 218,
             "column" : 10,
             "source_fragment" : "ipv4Lpm"
           },
@@ -2714,7 +3365,7 @@
           "base_default_next" : null,
           "next_tables" : {
             "MyIngress.forward" : "MyIngress.internalMacLookup",
-            "MyIngress.sendTunnel" : "node_12",
+            "MyIngress.sendTunnel" : "node_13",
             "MyIngress.drop" : null
           },
           "default_entry" : {
@@ -2726,41 +3377,12 @@
         },
         {
           "name" : "tbl_selectTunnel",
-          "id" : 6,
-          "source_info" : {
-            "filename" : "p4/l3switch_mslp.p4",
-            "line" : 327,
-            "column" : 24,
-            "source_fragment" : "selectTunnel(hdr.tcp.srcPort, hdr.tcp.dstPort)"
-          },
-          "key" : [],
-          "match_type" : "exact",
-          "type" : "simple",
-          "max_size" : 1024,
-          "with_counters" : false,
-          "support_timeout" : false,
-          "direct_meters" : null,
-          "action_ids" : [11],
-          "actions" : ["MyIngress.selectTunnel"],
-          "base_default_next" : "MyIngress.tunnelLookup",
-          "next_tables" : {
-            "MyIngress.selectTunnel" : "MyIngress.tunnelLookup"
-          },
-          "default_entry" : {
-            "action_id" : 11,
-            "action_const" : true,
-            "action_data" : [],
-            "action_entry_const" : true
-          }
-        },
-        {
-          "name" : "tbl_selectTunnel_0",
           "id" : 7,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 329,
+            "line" : 344,
             "column" : 24,
-            "source_fragment" : "selectTunnel(hdr.udp.srcPort, hdr.udp.dstPort)"
+            "source_fragment" : "selectTunnel(hdr.tcp.srcPort, hdr.tcp.dstPort)"
           },
           "key" : [],
           "match_type" : "exact",
@@ -2783,13 +3405,13 @@
           }
         },
         {
-          "name" : "tbl_selectTunnel_1",
+          "name" : "tbl_selectTunnel_0",
           "id" : 8,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 331,
+            "line" : 346,
             "column" : 24,
-            "source_fragment" : "selectTunnel(hdr.icmp.identifier, hdr.icmp.sequence)"
+            "source_fragment" : "selectTunnel(hdr.udp.srcPort, hdr.udp.dstPort)"
           },
           "key" : [],
           "match_type" : "exact",
@@ -2812,13 +3434,13 @@
           }
         },
         {
-          "name" : "tbl_selectTunnel_2",
+          "name" : "tbl_selectTunnel_1",
           "id" : 9,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 333,
+            "line" : 348,
             "column" : 24,
-            "source_fragment" : "selectTunnel(0x0110, 0x1001)"
+            "source_fragment" : "selectTunnel(hdr.icmp.identifier, hdr.icmp.sequence)"
           },
           "key" : [],
           "match_type" : "exact",
@@ -2841,11 +3463,40 @@
           }
         },
         {
-          "name" : "MyIngress.tunnelLookup",
+          "name" : "tbl_selectTunnel_2",
           "id" : 10,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 278,
+            "line" : 350,
+            "column" : 24,
+            "source_fragment" : "selectTunnel(0x0110, 0x1001)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [15],
+          "actions" : ["MyIngress.selectTunnel"],
+          "base_default_next" : "MyIngress.tunnelLookup",
+          "next_tables" : {
+            "MyIngress.selectTunnel" : "MyIngress.tunnelLookup"
+          },
+          "default_entry" : {
+            "action_id" : 15,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "MyIngress.tunnelLookup",
+          "id" : 11,
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 294,
             "column" : 10,
             "source_fragment" : "tunnelLookup"
           },
@@ -2868,7 +3519,7 @@
           "base_default_next" : null,
           "next_tables" : {
             "__MISS__" : null,
-            "__HIT__" : "tbl_l3switch_mslp337"
+            "__HIT__" : "tbl_l3switch_mslp354"
           },
           "default_entry" : {
             "action_id" : 3,
@@ -2878,11 +3529,11 @@
           }
         },
         {
-          "name" : "tbl_l3switch_mslp337",
-          "id" : 11,
+          "name" : "tbl_l3switch_mslp354",
+          "id" : 12,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 337,
+            "line" : 354,
             "column" : 44,
             "source_fragment" : "="
           },
@@ -2893,14 +3544,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [18],
-          "actions" : ["l3switch_mslp337"],
+          "action_ids" : [19],
+          "actions" : ["l3switch_mslp354"],
           "base_default_next" : null,
           "next_tables" : {
-            "l3switch_mslp337" : null
+            "l3switch_mslp354" : null
           },
           "default_entry" : {
-            "action_id" : 18,
+            "action_id" : 19,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -2908,10 +3559,10 @@
         },
         {
           "name" : "tbl_drop",
-          "id" : 12,
+          "id" : 13,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 342,
+            "line" : 359,
             "column" : 12,
             "source_fragment" : "drop()"
           },
@@ -2943,7 +3594,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 307,
+            "line" : 323,
             "column" : 12,
             "source_fragment" : "standard_metadata.instance_type == 0"
           },
@@ -2961,15 +3612,15 @@
               }
             }
           },
-          "true_next" : "tbl_l3switch_mslp308",
-          "false_next" : "node_4"
+          "true_next" : "tbl_l3switch_mslp324",
+          "false_next" : "node_5"
         },
         {
-          "name" : "node_4",
+          "name" : "node_5",
           "id" : 1,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 311,
+            "line" : 328,
             "column" : 12,
             "source_fragment" : "hdr.mslp.isValid()"
           },
@@ -2984,15 +3635,15 @@
               }
             }
           },
-          "true_next" : "tbl_l3switch_mslp253",
-          "false_next" : "node_9"
+          "true_next" : "tbl_l3switch_mslp264",
+          "false_next" : "node_10"
         },
         {
-          "name" : "node_9",
+          "name" : "node_10",
           "id" : 2,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 320,
+            "line" : 337,
             "column" : 19,
             "source_fragment" : "hdr.ipv4.isValid()"
           },
@@ -3011,11 +3662,11 @@
           "false_next" : "tbl_drop"
         },
         {
-          "name" : "node_12",
+          "name" : "node_13",
           "id" : 3,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 326,
+            "line" : 343,
             "column" : 24,
             "source_fragment" : "hdr.tcp.isValid()"
           },
@@ -3031,14 +3682,14 @@
             }
           },
           "true_next" : "tbl_selectTunnel",
-          "false_next" : "node_14"
+          "false_next" : "node_15"
         },
         {
-          "name" : "node_14",
+          "name" : "node_15",
           "id" : 4,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 328,
+            "line" : 345,
             "column" : 31,
             "source_fragment" : "hdr.udp.isValid()"
           },
@@ -3054,14 +3705,14 @@
             }
           },
           "true_next" : "tbl_selectTunnel_0",
-          "false_next" : "node_16"
+          "false_next" : "node_17"
         },
         {
-          "name" : "node_16",
+          "name" : "node_17",
           "id" : 5,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 330,
+            "line" : 347,
             "column" : 31,
             "source_fragment" : "hdr.icmp.isValid()"
           },
@@ -3086,18 +3737,47 @@
       "id" : 1,
       "source_info" : {
         "filename" : "p4/l3switch_mslp.p4",
-        "line" : 349,
+        "line" : 366,
         "column" : 8,
         "source_fragment" : "MyEgress"
       },
-      "init_table" : "node_24",
+      "init_table" : "node_25",
       "tables" : [
         {
-          "name" : "tbl_l3switch_mslp358",
-          "id" : 13,
+          "name" : "tbl_prepare_vmon_packet",
+          "id" : 14,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 358,
+            "line" : 396,
+            "column" : 12,
+            "source_fragment" : "prepare_vmon_packet()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [21],
+          "actions" : ["MyEgress.prepare_vmon_packet"],
+          "base_default_next" : "node_27",
+          "next_tables" : {
+            "MyEgress.prepare_vmon_packet" : "node_27"
+          },
+          "default_entry" : {
+            "action_id" : 21,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_l3switch_mslp399",
+          "id" : 15,
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 399,
             "column" : 12,
             "source_fragment" : "recirculate_preserving_field_list(0)"
           },
@@ -3108,14 +3788,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [20],
-          "actions" : ["l3switch_mslp358"],
+          "action_ids" : [22],
+          "actions" : ["l3switch_mslp399"],
           "base_default_next" : null,
           "next_tables" : {
-            "l3switch_mslp358" : null
+            "l3switch_mslp399" : null
           },
           "default_entry" : {
-            "action_id" : 20,
+            "action_id" : 22,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3123,10 +3803,10 @@
         },
         {
           "name" : "tbl_popLabel",
-          "id" : 14,
+          "id" : 16,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 360,
+            "line" : 401,
             "column" : 12,
             "source_fragment" : "popLabel()"
           },
@@ -3137,14 +3817,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [19],
+          "action_ids" : [20],
           "actions" : ["MyEgress.popLabel"],
           "base_default_next" : null,
           "next_tables" : {
             "MyEgress.popLabel" : null
           },
           "default_entry" : {
-            "action_id" : 19,
+            "action_id" : 20,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3154,11 +3834,57 @@
       "action_profiles" : [],
       "conditionals" : [
         {
-          "name" : "node_24",
+          "name" : "node_25",
           "id" : 6,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 357,
+            "line" : 395,
+            "column" : 12,
+            "source_fragment" : "standard_metadata.instance_type == 1 && meta.cloneToVmon == 1"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "and",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "==",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "instance_type"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0x00000001"
+                  }
+                }
+              },
+              "right" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "==",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata.cloneToVmon"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0x01"
+                  }
+                }
+              }
+            }
+          },
+          "true_next" : "tbl_prepare_vmon_packet",
+          "false_next" : "node_27"
+        },
+        {
+          "name" : "node_27",
+          "id" : 7,
+          "source_info" : {
+            "filename" : "p4/l3switch_mslp.p4",
+            "line" : 398,
             "column" : 12,
             "source_fragment" : "meta.setRecirculate == 1"
           },
@@ -3176,15 +3902,15 @@
               }
             }
           },
-          "true_next" : "tbl_l3switch_mslp358",
-          "false_next" : "node_26"
+          "true_next" : "tbl_l3switch_mslp399",
+          "false_next" : "node_29"
         },
         {
-          "name" : "node_26",
-          "id" : 7,
+          "name" : "node_29",
+          "id" : 8,
           "source_info" : {
             "filename" : "p4/l3switch_mslp.p4",
-            "line" : 359,
+            "line" : 400,
             "column" : 19,
             "source_fragment" : "hdr.mslp.isValid() && hdr.labels[0].isValid()"
           },
@@ -3228,7 +3954,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4/l3switch_mslp.p4",
-        "line" : 370,
+        "line" : 411,
         "column" : 8,
         "source_fragment" : "update_checksum( ..."
       },

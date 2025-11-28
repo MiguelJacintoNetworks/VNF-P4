@@ -143,6 +143,11 @@ class SingleSwitchTopo(Topo):
             ip = host_ip_base % (1, 3),
             mac = mac_base % (0, 3),
         )
+        h10 = self.addHost(
+            'h10',
+            ip = host_ip_base % (1, 10),
+            mac = mac_base % (0, 10),
+        )
         h4 = self.addHost(
             'h4',
             cls = Host,
@@ -165,6 +170,7 @@ class SingleSwitchTopo(Topo):
         self.addLink(h1, s1, port2 = 1, addr2 = sw_mac_base % 1)
         self.addLink(h2, s1, port2 = 2, addr2 = sw_mac_base % 2)
         self.addLink(h3, s1, port2 = 3, addr2 = sw_mac_base % 3)
+        self.addLink(h10, s1, port2 = 5, addr2 = sw_mac_base % 5)
 
         self.addLink(
             s1,
@@ -276,6 +282,14 @@ def main():
     )
 
     net.addLink(
+        r1,
+        vmon,
+        port1 = 4,
+        addr1 = mac_base % (1, 4),
+        addr2 = "aa:00:00:00:20:02",
+    )
+
+    net.addLink(
         r4,
         vlb,
         port1 = 1,
@@ -313,14 +327,23 @@ def main():
     h1 = net.get('h1')
     h2 = net.get('h2')
     h3 = net.get('h3')
+    h10 = net.get('h10')
 
     h1.setARP("10.0.1.254", "aa:00:00:00:01:01")
     h2.setARP("10.0.1.254", "aa:00:00:00:01:01")
     h3.setARP("10.0.1.254", "aa:00:00:00:01:01")
+    h10.setARP("10.0.1.254", "aa:00:00:00:01:01")
     
     h1.setDefaultRoute("dev eth0 via 10.0.1.254")
     h2.setDefaultRoute("dev eth0 via 10.0.1.254")
     h3.setDefaultRoute("dev eth0 via 10.0.1.254")
+    h10.setDefaultRoute("dev eth0 via 10.0.1.254")
+
+    r4.cmd("ip link set r4-eth4 up")
+    r4.cmd("ip addr add 10.0.250.1/24 dev r4-eth4")
+
+    r1.cmd("ip link set r1-eth4 up")
+    r1.cmd("ip addr add 10.0.251.1/24 dev r1-eth4")
 
     vmon.cmd("ip link set dev eth0 down || true")
     vmon.cmd("ip addr flush dev vmon-eth0 || true")
@@ -328,10 +351,14 @@ def main():
     vmon.cmd("ip addr add 10.0.250.2/24 dev vmon-eth0")
     vmon.cmd("ip link set vmon-eth0 promisc on")
 
+    vmon.cmd("ip link set dev eth1 down || true")
+    vmon.cmd("ip addr flush dev vmon-eth1 || true")
+    vmon.cmd("ip link set vmon-eth1 up")
+    vmon.cmd("ip addr add 10.0.251.2/24 dev vmon-eth1")
+    vmon.cmd("ip link set vmon-eth1 promisc on")
+    
     vmon.cmd("ethtool -K vmon-eth0 rx off tx off tso off gso off gro off || true")
-
-    r4.cmd("ip link set r4-eth4 up")
-    r4.cmd("ip addr add 10.0.250.1/24 dev r4-eth4")
+    vmon.cmd("ethtool -K vmon-eth1 rx off tx off tso off gso off gro off || true")
 
     vlb.cmd("ip link set dev eth0 down || true")
 
@@ -382,6 +409,7 @@ def main():
     r1.cmd("ethtool -K r1-eth1 rx off tx off tso off gso off gro off || true")
     r1.cmd("ethtool -K r1-eth2 rx off tx off tso off gso off gro off || true")
     r1.cmd("ethtool -K r1-eth3 rx off tx off tso off gso off gro off || true")
+    r1.cmd("ethtool -K r1-eth4 rx off tx off tso off gso off gro off || true")
 
     r2.cmd("ethtool -K r2-eth1 rx off tx off tso off gso off gro off || true")
     r2.cmd("ethtool -K r2-eth2 rx off tx off tso off gso off gro off || true")
@@ -403,6 +431,7 @@ def main():
     h1.cmd("ethtool -K eth0 rx off tx off tso off gso off gro off || true")
     h2.cmd("ethtool -K eth0 rx off tx off tso off gso off gro off || true")
     h3.cmd("ethtool -K eth0 rx off tx off tso off gso off gro off || true")
+    h10.cmd("ethtool -K eth0 rx off tx off tso off gso off gro off || true")
 
     s1.cmd("ethtool -K s1-eth1 rx off tx off tso off gso off gro off || true")
     s1.cmd("ethtool -K s1-eth2 rx off tx off tso off gso off gro off || true")
@@ -450,7 +479,7 @@ def main():
     h6.cmd("iperf -s -p 5001 --daemon")
 
     def wget_parallel_loop():
-        hosts = [("H1", h1), ("H2", h2), ("H3", h3)]
+        hosts = [("H1", h1), ("H2", h2), ("H3", h3), ("H10", h10)]
         while not wget_stop_event.is_set():
             for name, host in hosts:
                 print(f"\n[WGET][{name}] HTTP GET http://10.0.2.1:81/")
@@ -460,9 +489,10 @@ def main():
 
     def iperf_parallel_loop():
         max_rounds = 5000
-        hosts = [("H1", h1), ("H2", h2), ("H3", h3)]
-        command = "iperf -c 10.0.2.1 -p 5001 -b 1G -M 1400 -t 5 -i 1 2>&1 &"
-        duration = 0
+        hosts = [("H1", h1), ("H2", h2), ("H3", h3), ("H10", h10)]
+
+        tcp_cmd = "iperf -c 10.0.2.1 -p 5001 -b 1G -M 1400 -t 5 -i 1 2>&1 &"
+        udp_cmd = "iperf -c 10.0.2.1 -p 5001 -u -b 1G -M 1400 -t 5 -i 1 2>&1 &"
 
         round_number = 0
 
@@ -470,10 +500,13 @@ def main():
             print(f"\n[IPERF] ROUND {round_number + 1}/{max_rounds}")
 
             for name, host in hosts:
-                print(f"[IPERF][{name}] START TEST TO 10.0.2.1:5001")
-                host.cmd(command)
+                if name == "H10":
+                    print(f"[IPERF][{name}] UDP TRAFFIC TO 10.0.2.1:5001")
+                    host.cmd(udp_cmd)
+                else:
+                    print(f"[IPERF][{name}] TCP TRAFFIC TO 10.0.2.1:5001")
+                    host.cmd(tcp_cmd)
 
-            sleep(duration)
             round_number += 1
 
     def start_wget_loop():
@@ -496,6 +529,7 @@ def main():
         h1.cmd("pkill -9 wget || true")
         h2.cmd("pkill -9 wget || true")
         h3.cmd("pkill -9 wget || true")
+        h10.cmd("pkill -9 wget || true")
         print("[WGET] STOP SIGNAL SENT")
 
     def start_iperf_loop():
@@ -518,6 +552,7 @@ def main():
         h1.cmd("pkill -9 iperf || true")
         h2.cmd("pkill -9 iperf || true")
         h3.cmd("pkill -9 iperf || true")
+        h10.cmd("pkill -9 iperf || true")
         print("[IPERF] STOP SIGNAL SENT")
 
     class TrafficRequestHandler(BaseHTTPRequestHandler):

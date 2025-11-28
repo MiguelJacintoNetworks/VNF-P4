@@ -22,6 +22,17 @@ from p4runtime_lib.switch import ShutdownAllSwitchConnections
 
 VMON_METRICS_URL = os.getenv("VMON_METRICS_URL", "http://10.0.250.2:5000/metrics")
 
+VMON_IFACE_TO_SOURCE = {
+    "vmon-eth0": "r4",
+    "vmon-eth1": "r1",
+}
+
+BACKEND_IPS = {
+    "10.0.2.1"
+}
+
+reported_suspicious_flows = set()
+
 metrics_thread = None
 metrics_stop_event = None
 
@@ -78,6 +89,11 @@ def handle_metrics():
         bps = f.get("bps", 0)
         syn_rtt_ms = f.get("syn_rtt_ms", None)
 
+        first_iface = f.get("first_iface")
+        last_iface = f.get("last_iface")
+        iface = last_iface or first_iface or "-"
+        source_node = VMON_IFACE_TO_SOURCE.get(iface, "-")
+
         print(f"[{idx}] {proto}  {src_ip}:{src_port} -> {dst_ip}:{dst_port}")
         print(f"     PACKETS : {packets}")
         print(f"     BYTES   : {bytes_}")
@@ -88,11 +104,15 @@ def handle_metrics():
         else:
             print("     SYN RTT : -")
 
+        print(f"     IFACES  : FIRST = {first_iface or '-'} LAST = {last_iface or '-'}")
+        print(f"     SOURCE  : {source_node} (via {iface})")
+
         print("----------------------------------")
 
     print("=========== END VMON ===========\n")
 
 def poll_vmon_metrics(stop_event, interval=1.0):
+    global reported_suspicious_flows
     while not stop_event.is_set():
         try:
             with urllib.request.urlopen(VMON_METRICS_URL, timeout=1.5) as resp:
@@ -117,9 +137,25 @@ def poll_vmon_metrics(stop_event, interval=1.0):
                 src_port = f.get("src_port", "-")
                 dst_port = f.get("dst_port", "-")
 
+                if dst_ip not in BACKEND_IPS:
+                    continue
+
+                flow_id = (src_ip, src_port, dst_ip, dst_port)
+
+                if flow_id in reported_suspicious_flows:
+                    continue
+
+                reported_suspicious_flows.add(flow_id)
+
+                first_iface = f.get("first_iface")
+                last_iface = f.get("last_iface")
+                iface = last_iface or first_iface or "-"
+                source_node = VMON_IFACE_TO_SOURCE.get(iface, "-")
+
                 print(
                     f"[VMON] PACKET SUSPICIOUS? UDP FLOW {idx}: "
-                    f"{src_ip}:{src_port} -> {dst_ip}:{dst_port}"
+                    f"{src_ip}:{src_port} -> {dst_ip}:{dst_port} "
+                    f"[SOURCE = {source_node}, INTERFACE = {iface}]"
                 )
 
         sleep(interval)
