@@ -443,8 +443,8 @@ def main():
 
     vlb.cmd("ipvsadm -C || true")
 
-    # vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s rr")
-    vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s wrr")
+    vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s rr")
+    # vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s wrr")
     # vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s lc")
     # vlb.cmd("ipvsadm -A -t 10.0.2.1:81 -s sh")
 
@@ -452,14 +452,14 @@ def main():
     vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.5.2:81 -m")
     vlb.cmd("ipvsadm -a -t 10.0.2.1:81 -r 10.0.6.2:81 -m")
 
-    # vlb.cmd("ipvsadm -A -t 10.0.2.1:5001 -s rr")
-    vlb.cmd("ipvsadm -A -t 10.0.2.1:5001 -s wrr")
+    vlb.cmd("ipvsadm -A -t 10.0.2.1:5001 -s rr")
+    # vlb.cmd("ipvsadm -A -t 10.0.2.1:5001 -s wrr")
     # vlb.cmd("ipvsadm -A -t 10.0.2.1:5001 -s lc")
     # vlb.cmd("ipvsadm -A -t 10.0.2.1:5001 -s sh")
     
-    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.4.2:5001 -m -w 1")
-    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.5.2:5001 -m -w 3")
-    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.6.2:5001 -m -w 5")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.4.2:5001 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.5.2:5001 -m")
+    vlb.cmd("ipvsadm -a -t 10.0.2.1:5001 -r 10.0.6.2:5001 -m")
 
     vlb.cmd("tcpdump -i vlb-eth0 -s 0 -w vlb-eth0.pcap &")
     vlb.cmd("tcpdump -i vlb-eth1 -s 0 -w vlb-eth1.pcap &")
